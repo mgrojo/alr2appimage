@@ -1,0 +1,13 @@
+name = "alr_appimage"
+description = "Tool to automatically create an AppImage excutable from an Alire"
+version = "0.1.0-dev"
+
+authors = ["Manuel Gomez"]
+maintainers = ["Manuel Gomez <mgrojo@gmail.com>"]
+maintainers-logins = ["mgrojo"]
+
+executables = ["alr_appimage"]
+[[depends-on]]
+ada_toml = "~0.3.0"
+[[depends-on]]
+ashell = "^1.3.0"

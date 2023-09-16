@@ -1,5 +1,15 @@
+# Emacs
+*~
+\#*\#
+
 # Object file
 *.o
 
 # Ada Library Information
 *.ali
+
+# Alire
+/obj/
+/bin/
+/alire/
+/config/
