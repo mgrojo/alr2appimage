@@ -25,3 +25,4 @@ The following metadata will be read from your `alire.toml` for the generation, a
 | | `Terminal` | This field of the desktop entry will be set to `true`
 | | `Type` | This field of the desktop entry will be set to `Application`
 
+
