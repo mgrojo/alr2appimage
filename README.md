@@ -9,7 +9,7 @@ There are two prerequisites for your project to work with this tool:
 - It must be installable using `gprinstall`.
 
 `alr-appimage` will use the following command for installing it:
- alr exec -P -- gprinstall --prefix=$(DESTDIR) --create-missing-dirs --mode=usage -f
+ `alr exec -P -- gprinstall --prefix=$(DESTDIR) --create-missing-dirs --mode=usage -f`
 
 If you simply run the tool inside an Alire crate, it will read the
 metadata from your `alire.toml` file and create a default AppImage
@@ -25,4 +25,4 @@ The following metadata will be read from your `alire.toml` for the generation, a
 | | `Terminal` | This field of the desktop entry will be set to `true`
 | | `Type` | This field of the desktop entry will be set to `Application`
 
-
+If these defaults are not good for your project, you can also define a template for your desktop file, and only the fields that you want will be included from the `alire.toml` or initialized by this utility.
