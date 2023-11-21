@@ -11,11 +11,13 @@ There are two prerequisites for your project to work with this tool:
 `alr-appimage` will use the following command for installing it:
  `alr exec -P -- gprinstall --prefix=$(DESTDIR) --create-missing-dirs --mode=usage -f`
 
+Note: no longer needed if using Alire 2.0: `alr install`
+
 If you simply run the tool inside an Alire crate, it will read the
 metadata from your `alire.toml` file and create a default AppImage
 from it.
 
-The following metadata will be read from your `alire.toml` for the generation, and will be matched to the equivalent field of the `your_crate.desktop` file:
+The following metadata will be read from your `alire.toml` for the generation, and will be matched to the equivalent field of the `your_crate.desktop` file needed by the AppImage:
 | Alire  | Desktop   | Comment  |
 |---|---|---|
 | `name` | `Name` |
