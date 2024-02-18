@@ -1,23 +1,27 @@
-# alr-appimage
+# alr_appimage
 
-`alr-appimage` is a tool to automatically create an AppImage executable from an Alire crate.
+`alr_appimage` is a tool to automatically create an AppImage executable from an Alire crate.
 
 # How to use the tool
 
 There are two prerequisites for your project to work with this tool:
 - It has to be an Alire crate.
-- It must be installable using `gprinstall`.
+- It must be installable using Alire.
 
-`alr-appimage` will use the following command for installing it:
- `alr exec -P -- gprinstall --prefix=$(DESTDIR) --create-missing-dirs --mode=usage -f`
-
-Note: no longer needed if using Alire 2.0: `alr install`
+`alr_appimage` will use the following command for installing it (this requires Alire 2.0):
+```shell
+alr install
+```
 
 If you simply run the tool inside an Alire crate, it will read the
 metadata from your `alire.toml` file and create a default AppImage
 from it.
 
-The following metadata will be read from your `alire.toml` for the generation, and will be matched to the equivalent field of the `your_crate.desktop` file needed by the AppImage:
+This tool will generate a valid [Destop Entry](https://specifications.freedesktop.org/desktop-entry-spec/latest/)
+for the AppImage. The following metadata will be read from your
+`alire.toml` for the generation, and will be matched to the equivalent
+field of the `your_crate.desktop` file:
+
 | Alire  | Desktop   | Comment  |
 |---|---|---|
 | `name` | `Name` |
@@ -27,4 +31,17 @@ The following metadata will be read from your `alire.toml` for the generation, a
 | | `Terminal` | This field of the desktop entry will be set to `true`
 | | `Type` | This field of the desktop entry will be set to `Application`
 
-If these defaults are not good for your project, you can also define a template for your desktop file, and only the fields that you want will be included from the `alire.toml` or initialized by this utility.
+# Status
+The tool is already working, but with the following issues, which will
+be fixed in the future:
+- No resources included, so you have to provide your own icon using
+  `--icon icon-file` or copy `alr_appimage.png` to the working
+  directory (since it is the default).
+- The executable is supposed to reside in `bin/` and be called as the
+  crate name.
+- The tags are not yet read to form the categories or keywords
+  ("Utility" is used as harcoded value)
+- Not implemented yet: If the defaults are not good for your
+  project, you can also define a template for your desktop file, and
+  only the fields that you want will be included from the `alire.toml`
+  or initialized by this utility.

@@ -9,5 +9,9 @@ maintainers-logins = ["mgrojo"]
 executables = ["alr_appimage"]
 [[depends-on]]
 ada_toml = "~0.3.0"
+
 [[depends-on]]
-ashell = "^1.3.0"
+spoon = "^1.0.1"
+
+[[depends-on]]
+parse_args = "~0.9.0"
