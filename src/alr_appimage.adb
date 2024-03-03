@@ -43,7 +43,7 @@ begin
       Exec => Alire_TOML.Read_Field ("name"), -- TODO: Alire_TOML.Read_Field ("executables"),
       Icon => Ada.Directories.Base_Name (AP.String_Value ("icon")),
       Terminal => True,
-      Tags => (1 => Desktop_File."+" ("Utility")));
+      Tags => Alire_TOML.Read_Tags);
 
    Runner.Run_Alr_Install (Icon => AP.String_Value ("icon"), Success => Success);
 

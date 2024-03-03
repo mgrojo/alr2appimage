@@ -1,5 +1,7 @@
 with Ada.Strings.Unbounded;
 
+with String_Vectors;
+
 package Desktop_File is
 
    function "+" (Item : String) return Ada.Strings.Unbounded.Unbounded_String
@@ -15,6 +17,6 @@ package Desktop_File is
       Exec : String;
       Icon : String;
       Terminal : Boolean;
-      Tags : String_Array);
+      Tags : String_Vectors.Vector);
 
 end Desktop_File;
