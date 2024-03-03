@@ -39,8 +39,6 @@ be fixed in the future:
   directory (since it is the default).
 - The executable is supposed to reside in `bin/` and be called as the
   crate name.
-- The tags are not yet read to form the categories or keywords
-  ("Utility" is used as harcoded value)
 - Not implemented yet: If the defaults are not good for your
   project, you can also define a template for your desktop file, and
   only the fields that you want will be included from the `alire.toml`
