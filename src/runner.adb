@@ -45,10 +45,8 @@ package body Runner is
    procedure Run_Copy_Icon (Icon : String; Success : out Boolean) is
 
       Arg_1 : aliased Spoon.Argument := Spoon.To_Argument ("-p");
-      Arg_2 : aliased Spoon.Argument
-        := Spoon.To_Argument (Icon);
-      Arg_3 : aliased Spoon.Argument
-        := Spoon.To_Argument (Install_Prefix);
+      Arg_2 : aliased Spoon.Argument := Spoon.To_Argument (Icon);
+      Arg_3 : aliased Spoon.Argument := Spoon.To_Argument (Install_Prefix);
 
       Result : constant Spoon.Result :=
         Spoon.Spawn (Executable => "cp",
@@ -66,14 +64,16 @@ package body Runner is
 
    procedure Run_Alr_Install (Icon : String; Success : out Boolean) is
 
-      Arg_1 : aliased Spoon.Argument := Spoon.To_Argument ("install");
-      Arg_2 : aliased Spoon.Argument
+      Arg_1 : aliased Spoon.Argument := Spoon.To_Argument ("--force");
+      Arg_2 : aliased Spoon.Argument := Spoon.To_Argument ("install");
+      Arg_3 : aliased Spoon.Argument
         := Spoon.To_Argument ("--prefix=" & Install_Prefix);
 
       Result : constant Spoon.Result :=
         Spoon.Spawn (Executable => "alr",
                      Arguments => (Arg_1'Unchecked_Access,
-                                   Arg_2'Unchecked_Access),
+                                   Arg_2'Unchecked_Access,
+                                   Arg_3'Unchecked_Access),
                      Kind => Spoon.Name);
    begin
 
@@ -159,26 +159,18 @@ package body Runner is
 
    procedure Run_Linuxdeploy (Executable, Icon_File : String; Success : out Boolean) is
 
-      Arg_1 : aliased Spoon.Argument
-        := Spoon.To_Argument ("--executable=bin/" & Executable);
-      Arg_2 : aliased Spoon.Argument
-        := Spoon.To_Argument ("--desktop-file=" & Executable & ".desktop");
-      Arg_3 : aliased Spoon.Argument
-        := Spoon.To_Argument ("--icon-file="
-                                & Install_Prefix & "/" & Icon_File);
-      Arg_4 : aliased Spoon.Argument
-        := Spoon.To_Argument ("--appdir=" & App_Dir);
-      Arg_5 : aliased Spoon.Argument
-        := Spoon.To_Argument ("--output=appimage");
+      Arg_String_1 : constant String :="--executable=bin/" & Executable;
+      Arg_String_2 : constant String :="--desktop-file=" & Executable & ".desktop";
+      Arg_String_3 : constant String :="--icon-file=" & Install_Prefix & "/" & Icon_File;
+      Arg_String_4 : constant String :="--appdir=" & App_Dir;
+      Arg_String_5 : constant String :="--output=appimage";
 
-      Result : constant Spoon.Result :=
-        Spoon.Spawn (Executable => "./" & Linuxdeploy_Program,
-                     Arguments => (Arg_1'Unchecked_Access,
-                                   Arg_2'Unchecked_Access,
-                                   Arg_3'Unchecked_Access,
-                                   Arg_4'Unchecked_Access,
-                                   Arg_5'Unchecked_Access),
-                     Kind => Spoon.Name);
+      Arg_1 : aliased Spoon.Argument := Spoon.To_Argument (Arg_String_1);
+      Arg_2 : aliased Spoon.Argument := Spoon.To_Argument (Arg_String_2);
+      Arg_3 : aliased Spoon.Argument := Spoon.To_Argument (Arg_String_3);
+      Arg_4 : aliased Spoon.Argument := Spoon.To_Argument (Arg_String_4);
+      Arg_5 : aliased Spoon.Argument := Spoon.To_Argument (Arg_String_5);
+
    begin
 
       Run_Change_Mode (Success);
@@ -187,9 +179,25 @@ package body Runner is
          return;
       end if;
 
-      Ada.Text_IO.Put_Line ("Running """ & Linuxdeploy_Program & """");
+      Ada.Text_IO.Put_Line ("Running ""./" & Linuxdeploy_Program & " "
+                              & Arg_String_1 & " "
+                              & Arg_String_2 & " "
+                              & Arg_String_3 & " "
+                              & Arg_String_4 & " "
+                              & Arg_String_5 & '"');
 
-      Report_State (Result, Success);
+      declare
+         Result : constant Spoon.Result :=
+           Spoon.Spawn (Executable => "./" & Linuxdeploy_Program,
+                        Arguments => (Arg_1'Unchecked_Access,
+                                      Arg_2'Unchecked_Access,
+                                      Arg_3'Unchecked_Access,
+                                      Arg_4'Unchecked_Access,
+                                      Arg_5'Unchecked_Access),
+                        Kind => Spoon.File_Path);
+      begin
+         Report_State (Result, Success);
+      end;
 
    end Run_Linuxdeploy;
 

@@ -32,10 +32,11 @@ package body Alire_TOML is
          return Default;
    end Read_Field;
 
-   function Read_Tags return String_Vectors.Vector is
+   function Read_String_List
+     (Key :  String) return String_Vectors.Vector is
+
       Default : String_Vectors.Vector renames String_Vectors.Empty_Vector;
       Value : String_Vectors.Vector := Default;
-      Key : constant String := "tags";
    begin
 
       if Config /= No_TOML_Value and then
@@ -60,7 +61,7 @@ package body Alire_TOML is
                                  Key & " in " & Filename);
          return Default;
 
-   end Read_Tags;
+   end Read_String_List;
 
    procedure Load_Alire is
    begin

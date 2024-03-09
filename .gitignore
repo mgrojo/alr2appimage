@@ -5,11 +5,16 @@
 # Object file
 *.o
 
-# Ada Library Information
+# GNAT
 *.ali
+*.stderr
+*.stdout
 
 # Alire
 /obj/
 /bin/
 /alire/
 /config/
+
+# AppImage
+*.AppImage
