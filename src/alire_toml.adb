@@ -72,7 +72,7 @@ package body Alire_TOML is
            (Ada.Text_IO.Standard_Error,
             "Error: not inside an Alire workspace (alire.toml not found)");
 
-         return;
+         raise Load_Error;
       end if;
 
       declare
@@ -90,7 +90,8 @@ package body Alire_TOML is
               (Ada.Text_IO.Standard_Error,
                Ada.Strings.Unbounded.To_String (Result.Message));
 
-            return;
+            raise Load_Error with Ada.Strings.Unbounded.To_String (Result.Message);
+
          end if;
       end;
 
