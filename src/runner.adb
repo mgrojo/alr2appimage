@@ -1,10 +1,12 @@
+with Ada.Directories;
+with Ada.Strings.Unbounded;
 with Ada.Text_IO;
 
 with Spoon;
 
 package body Runner is
 
-   App_Dir : constant String := "AppDir";
+   App_Dir : constant String := "alr-appimage-AppDir";
    Install_Prefix : constant String := App_Dir & "/usr";
 
    Linuxdeploy_Program : constant String := "linuxdeploy-x86_64.AppImage";
@@ -14,10 +16,6 @@ package body Runner is
 
    Linuxdeploy_URL_Argument : aliased Spoon.Argument
      := Spoon.To_Argument (Linuxdeploy_URL);
-
-   ---------------------
-   -- Run_Alr_Install --
-   ---------------------
 
    procedure Report_State (Result : Spoon.Result; Success : out Boolean) is
       use all type Spoon.Exit_State;
@@ -153,17 +151,83 @@ package body Runner is
       Report_State (Result, Success);
    end Run_Change_Mode;
 
-   ---------------------
-   -- Run_Linuxdeploy --
-   ---------------------
+   -- Find the first file with Executable name in the current directory
+   --
+   function Find_Executable (Executable : String; From_Dir : String) return String
+   is
 
-   procedure Run_Linuxdeploy (Executable, Icon_File : String; Success : out Boolean) is
+      use Ada.Directories;
 
-      Arg_String_1 : constant String :="--executable=bin/" & Executable;
-      Arg_String_2 : constant String :="--desktop-file=" & Executable & ".desktop";
-      Arg_String_3 : constant String :="--icon-file=" & Install_Prefix & "/" & Icon_File;
-      Arg_String_4 : constant String :="--appdir=" & App_Dir;
-      Arg_String_5 : constant String :="--output=appimage";
+      File_Not_Found : exception;
+      Found_Filename : Ada.Strings.Unbounded.Unbounded_String;
+
+      procedure Find_First_File (Current_Dir : String) is
+
+         Dir_Entry : Directory_Entry_Type;
+         Dir_Search : Search_Type;
+
+      begin
+         Start_Search (Search => Dir_Search,
+                       Directory => Current_Dir,
+                       Pattern => "",
+                       Filter => (Ordinary_File => True,
+                                  Directory     => True,
+                                  others        => False));
+
+         while More_Entries (Dir_Search) loop
+            Get_Next_Entry (Dir_Search, Dir_Entry);
+
+            case Kind (Dir_Entry) is
+               when Directory =>
+                  -- Recursive call avoiding the link to current directory (".")
+                  if Simple_Name (Dir_Entry) /= "."
+                    and then
+                    Simple_Name (Dir_Entry) /= ".."
+                  then
+                     Find_First_File
+                       (Current_Dir => Full_Name (Dir_Entry));
+                  end if;
+               when Ordinary_File =>
+                  if Simple_Name (Dir_Entry) = Executable then
+                     Found_Filename :=
+                       Ada.Strings.Unbounded.To_Unbounded_String (Full_Name (Dir_Entry));
+                     exit;
+                  end if;
+               when Ada.Directories.Special_File =>
+                  null;
+            end case;
+
+            exit when not More_Entries (Dir_Search);
+         end loop;
+
+         End_Search (Dir_Search);
+
+      end Find_First_File;
+
+   begin
+
+      Find_First_File (From_Dir);
+
+      if Ada.Strings.Unbounded.Length (Found_Filename) = 0 then
+         raise File_Not_Found with Executable & " not found in crate directory.";
+      end if;
+
+      return Ada.Strings.Unbounded.To_String (Found_Filename);
+   end Find_Executable;
+
+
+   procedure Run_Linuxdeploy (Executable, Icon_File : String;
+                              Success : out Boolean) is
+
+      Arg_String_1 : constant String := "--executable="
+        & Find_Executable (Executable, From_Dir => Ada.Directories.Current_Directory);
+      Arg_String_2 : constant String := "--desktop-file="
+        & Executable & ".desktop";
+      Arg_String_3 : constant String := "--icon-file="
+        & Install_Prefix & "/" & Icon_File;
+      Arg_String_4 : constant String := "--appdir="
+        & App_Dir;
+      Arg_String_5 : constant String := "--output=appimage";
 
       Arg_1 : aliased Spoon.Argument := Spoon.To_Argument (Arg_String_1);
       Arg_2 : aliased Spoon.Argument := Spoon.To_Argument (Arg_String_2);
@@ -199,6 +263,7 @@ package body Runner is
          Report_State (Result, Success);
       end;
 
+      Ada.Directories.Delete_Tree (App_Dir);
    end Run_Linuxdeploy;
 
 end Runner;
