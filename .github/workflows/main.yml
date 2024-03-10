@@ -49,7 +49,9 @@ jobs:
            distrib: community
            target: native
        - name: alire-project/setup-alire
-         uses: alire-project/setup-alire@v1
+         uses: alire-project/setup-alire@v2
+         with:
+            branch: "master"
        - name: Update apt
          run: sudo apt-get update
        - name: Update
