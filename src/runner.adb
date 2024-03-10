@@ -12,7 +12,7 @@ package body Runner is
 
    Installation_Subdir : constant String := "/usr";
 
-   Linuxdeploy_Program : constant String := "linuxdeploy-x86_64.AppImage";
+   Linuxdeploy_Program : constant String := File_Manager.To_AppImage_File ("linuxdeploy");
    Linuxdeploy_URL : constant String :=
      "https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/"
      & Linuxdeploy_Program;
@@ -109,6 +109,12 @@ package body Runner is
                                   Success : out Boolean)
    is
    begin
+
+      if Ada.Directories.Exists (Linuxdeploy_Program) then
+         Ada.Text_IO.Put_Line ("Reusing existing " & Linuxdeploy_Program);
+         Success := True;
+         return;
+      end if;
 
       case Use_Tool is
          when Curl =>

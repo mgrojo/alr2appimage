@@ -6,6 +6,7 @@ with Ada.Text_IO; use Ada.Text_IO;
 with Alire_TOML;
 with Alr_Appimage_Config;
 with Desktop_File;
+with File_Manager;
 with Runner;
 with String_Vectors;
 
@@ -62,10 +63,11 @@ begin
 
    Alire_TOML.Load_Alire;
 
-   Write_Desktop :
-   declare
+   Make_AppImage : declare
       Executable_List : constant String_Vectors.Vector
         := Alire_TOML.Read_String_List ("executables");
+      Icon : constant String := AP.String_Value ("icon");
+      Name : constant String := Alire_TOML.Read_Field ("name");
    begin
       if Ada.Containers."=" (Executable_List.Length, 0) then
          Report_Failure ("Error: the field 'executables' in 'alire.toml' is empty");
@@ -73,51 +75,49 @@ begin
       end if;
 
       Desktop_File.Write
-        (Name => Alire_TOML.Read_Field ("name"),
+        (Name => Name,
          Comment => Alire_TOML.Read_Field ("description"),
          Exec => Executable_List.Element (Positive'First),
-         Icon => Ada.Directories.Base_Name (AP.String_Value ("icon")),
+         Icon => Ada.Directories.Base_Name (Icon),
          Terminal => AP.Boolean_Value ("terminal"),
          Tags => Alire_TOML.Read_String_List ("tags"));
-   end Write_Desktop;
 
-   Running : declare
-      App_Dir : constant String :=
-        Runner.Run_Alr_Install (Icon => AP.String_Value ("icon"));
-   begin
+      Deploy : declare
+         App_Dir : constant String := Runner.Run_Alr_Install (Icon);
+      begin
 
-      if App_Dir = "" then
-         Put_Line (Standard_Error, "Running ""alr install"" Failed. Aborting.");
-         Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
-         return;
-      end if;
-
-      Runner.Run_Get_Linuxdeploy (Use_Tool => Runner.Curl, Success => Success);
-
-      if not Success then
-         Runner.Run_Get_Linuxdeploy (Use_Tool => Runner.Wget, Success => Success);
-
-         if not Success then
-            Report_Failure ("Downloading linuxdeploy failed. Please, install wget or curl.");
+         if App_Dir = "" then
+            Report_Failure ("Running ""alr install"" Failed. Aborting.");
             return;
          end if;
-      end if;
 
-      Runner.Run_Linuxdeploy (App_Dir => App_Dir,
-                              Executable => Alire_TOML.Read_Field ("name"),
-                              Icon_File => Ada.Directories.Simple_Name (AP.String_Value ("icon")),
-                              Success => Success);
+         Runner.Run_Get_Linuxdeploy (Use_Tool => Runner.Curl, Success => Success);
 
-      Ada.Directories.Delete_Tree (App_Dir);
+         if not Success then
+            Runner.Run_Get_Linuxdeploy (Use_Tool => Runner.Wget, Success => Success);
 
-      if not Success then
-         Report_Failure ("Running linuxdeploy failed. Aborting.");
-         return;
-      else
-         Put_Line ("Success! AppImage is ready in: " &
-                     Alire_TOML.Read_Field ("name") & "-*.AppImage");
-      end if;
+            if not Success then
+               Report_Failure ("Downloading linuxdeploy failed. Please, install wget or curl.");
+               return;
+            end if;
+         end if;
 
-   end Running;
+         Runner.Run_Linuxdeploy (App_Dir => App_Dir,
+                                 Executable => Executable_List.Element (Positive'First),
+                                 Icon_File => Ada.Directories.Simple_Name (Icon),
+                                 Success => Success);
+
+         Ada.Directories.Delete_Tree (App_Dir);
+
+         if not Success then
+            Report_Failure ("Running linuxdeploy failed. Aborting.");
+            return;
+         else
+            Put_Line ("Success! AppImage is ready in: " &
+                        File_Manager.To_AppImage_File (Name));
+         end if;
+
+      end Deploy;
+   end Make_AppImage;
 
 end Alr_Appimage;
