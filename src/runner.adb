@@ -2,12 +2,15 @@ with Ada.Directories;
 with Ada.Strings.Unbounded;
 with Ada.Text_IO;
 
+with File_Manager;
+
 with Spoon;
 
 package body Runner is
 
-   App_Dir : constant String := "alr-appimage-AppDir";
-   Install_Prefix : constant String := App_Dir & "/usr";
+   App_Dir_Template : constant String := "alr-appimage-AppDir-XXXXXX";
+
+   Installation_Subdir : constant String := "/usr";
 
    Linuxdeploy_Program : constant String := "linuxdeploy-x86_64.AppImage";
    Linuxdeploy_URL : constant String :=
@@ -40,11 +43,11 @@ package body Runner is
 
    end Report_State;
 
-   procedure Run_Copy_Icon (Icon : String; Success : out Boolean) is
+   procedure Run_Copy_Icon (Icon : String; To_Dir : String; Success : out Boolean) is
 
       Arg_1 : aliased Spoon.Argument := Spoon.To_Argument ("-p");
       Arg_2 : aliased Spoon.Argument := Spoon.To_Argument (Icon);
-      Arg_3 : aliased Spoon.Argument := Spoon.To_Argument (Install_Prefix);
+      Arg_3 : aliased Spoon.Argument := Spoon.To_Argument (To_Dir);
 
       Result : constant Spoon.Result :=
         Spoon.Spawn (Executable => "cp",
@@ -54,18 +57,25 @@ package body Runner is
                      Kind => Spoon.Name);
    begin
 
-      Ada.Text_IO.Put_Line ("Copying icon...");
+      Ada.Text_IO.Put_Line ("Copying icon " & Icon & " to " & To_Dir & "...");
 
       Report_State (Result, Success);
 
    end Run_Copy_Icon;
 
-   procedure Run_Alr_Install (Icon : String; Success : out Boolean) is
+   function Run_Alr_Install (Icon : String) return String
+   is
+
+      App_Dir : constant String := File_Manager.Create_Temporary_Directory (App_Dir_Template);
+
+      Install_Prefix : constant String := App_Dir & Installation_Subdir;
 
       Arg_1 : aliased Spoon.Argument := Spoon.To_Argument ("--force");
       Arg_2 : aliased Spoon.Argument := Spoon.To_Argument ("install");
       Arg_3 : aliased Spoon.Argument
         := Spoon.To_Argument ("--prefix=" & Install_Prefix);
+
+      Success : Boolean := False;
 
       Result : constant Spoon.Result :=
         Spoon.Spawn (Executable => "alr",
@@ -80,7 +90,13 @@ package body Runner is
       Report_State (Result, Success);
 
       if Success then
-         Run_Copy_Icon (Icon, Success);
+         Run_Copy_Icon (Icon, Install_Prefix, Success);
+      end if;
+
+      if not Success then
+         return "";
+      else
+         return App_Dir;
       end if;
 
    end Run_Alr_Install;
@@ -216,8 +232,10 @@ package body Runner is
    end Find_Executable;
 
 
-   procedure Run_Linuxdeploy (Executable, Icon_File : String;
+   procedure Run_Linuxdeploy (App_Dir, Executable, Icon_File : String;
                               Success : out Boolean) is
+
+      Install_Prefix : constant String := App_Dir & Installation_Subdir;
 
       Arg_String_1 : constant String := "--executable="
         & Find_Executable (Executable, From_Dir => Ada.Directories.Current_Directory);
@@ -263,7 +281,6 @@ package body Runner is
          Report_State (Result, Success);
       end;
 
-      Ada.Directories.Delete_Tree (App_Dir);
    end Run_Linuxdeploy;
 
 end Runner;

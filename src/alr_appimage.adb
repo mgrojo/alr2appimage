@@ -81,34 +81,43 @@ begin
          Tags => Alire_TOML.Read_String_List ("tags"));
    end Write_Desktop;
 
-   Runner.Run_Alr_Install (Icon => AP.String_Value ("icon"), Success => Success);
+   Running : declare
+      App_Dir : constant String :=
+        Runner.Run_Alr_Install (Icon => AP.String_Value ("icon"));
+   begin
 
-   if not Success then
-      Put_Line (Standard_Error, "Running ""alr install"" Failed. Aborting.");
-      Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
-      return;
-   end if;
-
-   Runner.Run_Get_Linuxdeploy (Use_Tool => Runner.Curl, Success => Success);
-
-   if not Success then
-      Runner.Run_Get_Linuxdeploy (Use_Tool => Runner.Wget, Success => Success);
-
-      if not Success then
-         Report_Failure ("Downloading linuxdeploy failed. Please, install wget or curl.");
+      if App_Dir = "" then
+         Put_Line (Standard_Error, "Running ""alr install"" Failed. Aborting.");
+         Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
          return;
       end if;
-   end if;
 
-   Runner.Run_Linuxdeploy (Executable => Alire_TOML.Read_Field ("name"),
-                           Icon_File => Ada.Directories.Simple_Name (AP.String_Value ("icon")),
-                           Success => Success);
-   if not Success then
-      Report_Failure ("Running linuxdeploy failed. Aborting.");
-      return;
-   else
-      Put_Line ("Success! AppImage is ready in: " &
-                  Alire_TOML.Read_Field ("name") & "-*.AppImage");
-   end if;
+      Runner.Run_Get_Linuxdeploy (Use_Tool => Runner.Curl, Success => Success);
+
+      if not Success then
+         Runner.Run_Get_Linuxdeploy (Use_Tool => Runner.Wget, Success => Success);
+
+         if not Success then
+            Report_Failure ("Downloading linuxdeploy failed. Please, install wget or curl.");
+            return;
+         end if;
+      end if;
+
+      Runner.Run_Linuxdeploy (App_Dir => App_Dir,
+                              Executable => Alire_TOML.Read_Field ("name"),
+                              Icon_File => Ada.Directories.Simple_Name (AP.String_Value ("icon")),
+                              Success => Success);
+
+      Ada.Directories.Delete_Tree (App_Dir);
+
+      if not Success then
+         Report_Failure ("Running linuxdeploy failed. Aborting.");
+         return;
+      else
+         Put_Line ("Success! AppImage is ready in: " &
+                     Alire_TOML.Read_Field ("name") & "-*.AppImage");
+      end if;
+
+   end Running;
 
 end Alr_Appimage;
