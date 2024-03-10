@@ -1,16 +1,11 @@
-with Ada.Strings.Unbounded;
-
 with String_Vectors;
 
 package Desktop_File is
 
-   function "+" (Item : String) return Ada.Strings.Unbounded.Unbounded_String
-     renames Ada.Strings.Unbounded.To_Unbounded_String;
-   function "-" (Item : Ada.Strings.Unbounded.Unbounded_String) return String
-     renames Ada.Strings.Unbounded.To_String;
-
-   type String_Array is array (Positive range <>) of Ada.Strings.Unbounded.Unbounded_String;
-
+   -- Write a desktop entry file with the fields passed as parameters.
+   -- The file will be named: Name & ".desktop".
+   -- See https://specifications.freedesktop.org/desktop-entry-spec/latest/
+   --
    procedure Write
      (Name : String;
       Comment : String;
