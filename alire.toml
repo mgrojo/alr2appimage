@@ -27,7 +27,7 @@ maintainers-logins = ["mgrojo"]
 
 executables = ["alr_appimage"]
 [[depends-on]]
-ada_toml = "~0.4.0"
+ada_toml = "^0.3.0"
 
 [[depends-on]]
 spoon = "^1.0.1"
