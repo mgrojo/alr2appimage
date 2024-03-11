@@ -1,0 +1,67 @@
+# Build using Alire.
+name: Build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+permissions: write-all
+
+jobs:
+  build:
+    name: CI on ${{ matrix.os }}
+
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [ubuntu-20.04, ubuntu-latest]
+
+    steps:
+       - name: Checkout
+         uses: actions/checkout@v2
+       - name: ada-actions/toolchain
+         uses: ada-actions/toolchain@ce2021
+         with:
+           distrib: community
+           target: native
+       - name: alire-project/setup-alire
+         uses: alire-project/setup-alire@v2
+       - name: Update apt
+         if: runner.os == 'Linux'
+         run: sudo apt-get update
+       - name: Update
+         run: alr index --update-all
+       - name: Build
+         run: alr --non-interactive build
+         
+  release:
+    name: Continuous AppImage
+    runs-on: ubuntu-20.04
+    steps:    
+       - name: Checkout
+         uses: actions/checkout@v2
+       - name: ada-actions/toolchain
+         uses: ada-actions/toolchain@ce2021
+         with:
+           distrib: community
+           target: native
+       - name: alire-project/setup-alire
+         uses: alire-project/setup-alire@v2
+         with:
+            branch: "master"
+       - name: Update apt
+         run: sudo apt-get update
+       - name: Update
+         run: alr index --update-all
+       - name: Build
+         run: alr --non-interactive build
+       - name: Build AppImage
+         run: VERSION=$(printf "dev-`git -C . rev-parse --short HEAD`") bin/alr_appimage
+       - name: Upload artifacts
+         uses: actions/upload-artifact@v3
+         with:
+           name: build-artifacts
+           path: alr_appimage*.AppImage
