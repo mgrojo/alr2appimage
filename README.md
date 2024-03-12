@@ -24,10 +24,12 @@ There are two prerequisites for your project to work with this tool:
   has to be the main application program.
 - It must be installable using Alire, including all the needed resources.
 
+
 `alr_appimage` will use the following command for installing it (this requires Alire 2.0):
 ```shell
 alr install
 ```
+Or it will run `gprinstall` inside `alr exec`, if the former fails (Alire 1.x).
 
 If you simply run the tool inside an Alire crate, it will read the
 metadata from your `alire.toml` file and create a default AppImage

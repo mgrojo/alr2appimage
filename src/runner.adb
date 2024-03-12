@@ -63,6 +63,42 @@ package body Runner is
 
    end Run_Copy_Icon;
 
+   --  Run gprinstall inside "alr exec". This is the fallback when running under
+   --  a version of Alire without the "install" subcommand (1.x versions).
+   --
+   procedure Run_Gprinstall (Install_Prefix : String;
+                             Success : out Boolean)
+   is
+
+      Arg_1 : aliased Spoon.Argument := Spoon.To_Argument ("exec");
+      Arg_2 : aliased Spoon.Argument := Spoon.To_Argument ("-P");
+      Arg_3 : aliased Spoon.Argument := Spoon.To_Argument ("--");
+      Arg_4 : aliased Spoon.Argument := Spoon.To_Argument ("gprinstall");
+      Arg_5 : aliased Spoon.Argument
+        := Spoon.To_Argument ("--prefix=" & Install_Prefix);
+      Arg_6 : aliased Spoon.Argument := Spoon.To_Argument ("--create-missing-dirs");
+      Arg_7 : aliased Spoon.Argument := Spoon.To_Argument ("--mode=usage");
+      Arg_8 : aliased Spoon.Argument := Spoon.To_Argument ("-f");
+
+      Result : constant Spoon.Result :=
+        Spoon.Spawn (Executable => "alr",
+                     Arguments => (Arg_1'Unchecked_Access,
+                                   Arg_2'Unchecked_Access,
+                                   Arg_3'Unchecked_Access,
+                                   Arg_4'Unchecked_Access,
+                                   Arg_5'Unchecked_Access,
+                                   Arg_6'Unchecked_Access,
+                                   Arg_7'Unchecked_Access,
+                                   Arg_8'Unchecked_Access),
+                     Kind => Spoon.Name);
+   begin
+
+      Ada.Text_IO.Put_Line ("Finished: fallback command: ""alr exec ... gprinstall ...""");
+
+      Report_State (Result, Success);
+
+   end Run_Gprinstall;
+
    function Run_Alr_Install (Icon : String) return String
    is
 
@@ -85,9 +121,14 @@ package body Runner is
                      Kind => Spoon.Name);
    begin
 
-      Ada.Text_IO.Put_Line ("Running ""alr install""");
+      Ada.Text_IO.Put_Line ("Finished: ""alr install""");
 
       Report_State (Result, Success);
+
+      if not Success then
+         --  "alr install" failed. Let's try with the fallback command.
+         Run_Gprinstall (Install_Prefix, Success);
+      end if;
 
       if Success then
          Run_Copy_Icon (Icon, Install_Prefix, Success);
@@ -130,7 +171,7 @@ package body Runner is
                                             Linuxdeploy_URL_Argument'Access),
                               Kind => Spoon.Name);
             begin
-               Ada.Text_IO.Put_Line ("Running curl...");
+               Ada.Text_IO.Put_Line ("Finished: curl...");
                Report_State (Result, Success);
             end;
 
@@ -148,7 +189,7 @@ package body Runner is
                               Kind => Spoon.Name);
             begin
 
-               Ada.Text_IO.Put_Line ("Running wget...");
+               Ada.Text_IO.Put_Line ("Finished: wget...");
                Report_State (Result, Success);
             end;
 
@@ -168,7 +209,7 @@ package body Runner is
                                    Arg_2'Unchecked_Access),
                      Kind => Spoon.Name);
    begin
-      Ada.Text_IO.Put_Line ("Running ""chmod +x "
+      Ada.Text_IO.Put_Line ("Finished: ""chmod +x "
                               & Linuxdeploy_Program & """");
       Report_State (Result, Success);
    end Run_Change_Mode;
@@ -237,7 +278,6 @@ package body Runner is
       return Ada.Strings.Unbounded.To_String (Found_Filename);
    end Find_Executable;
 
-
    procedure Run_Linuxdeploy (App_Dir, Executable, Icon_File : String;
                               Success : out Boolean) is
 
@@ -267,7 +307,7 @@ package body Runner is
          return;
       end if;
 
-      Ada.Text_IO.Put_Line ("Running ""./" & Linuxdeploy_Program & " "
+      Ada.Text_IO.Put_Line ("Running: ""./" & Linuxdeploy_Program & " "
                               & Arg_String_1 & " "
                               & Arg_String_2 & " "
                               & Arg_String_3 & " "

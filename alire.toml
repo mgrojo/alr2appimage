@@ -1,6 +1,6 @@
 name = "alr_appimage"
 description = "Tool to create an AppImage executable from an Alire crate"
-version = "0.9.0"
+version = "0.9.1"
 website = "https://github.com/mgrojo/alr-appimage"
 long-description = """
 There are two prerequisites for your project to work with this tool:
@@ -12,6 +12,7 @@ There are two prerequisites for your project to work with this tool:
 ```shell
 alr install
 ```
+Or it will run `gprinstall` inside `alr exec`, if the former fails (Alire 1.x).
 
 If you simply run the tool inside an Alire crate, it will read the
 metadata from your `alire.toml` file and create a default AppImage
