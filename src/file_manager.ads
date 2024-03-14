@@ -1,4 +1,4 @@
-with Alr_Appimage_Config;
+with Alr2appimage_Config;
 
 package File_Manager is
 
@@ -10,6 +10,6 @@ package File_Manager is
    function Create_Temporary_Directory (Template : String) return String;
 
    function To_AppImage_File (Name : String) return String is
-     (Name & '-' & Alr_Appimage_Config.Alire_Host_Arch & ".AppImage");
+     (Name & '-' & Alr2appimage_Config.Alire_Host_Arch & ".AppImage");
 
 end File_Manager;

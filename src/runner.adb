@@ -8,7 +8,7 @@ with Spoon;
 
 package body Runner is
 
-   App_Dir_Template : constant String := "alr-appimage-AppDir-XXXXXX";
+   App_Dir_Template : constant String := "alr2appimage-AppDir-XXXXXX";
 
    Installation_Subdir : constant String := "/usr";
 

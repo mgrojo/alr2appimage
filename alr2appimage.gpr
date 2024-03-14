@@ -1,14 +1,14 @@
-with "config/alr_appimage_config.gpr";
-project Alr_Appimage is
+with "config/alr2appimage_config.gpr";
+project Alr2AppImage is
 
    for Source_Dirs use ("src/", "config/");
-   for Object_Dir use "obj/" & Alr_Appimage_Config.Build_Profile;
+   for Object_Dir use "obj/" & Alr2AppImage_Config.Build_Profile;
    for Create_Missing_Dirs use "True";
    for Exec_Dir use "bin";
-   for Main use ("alr_appimage.adb");
+   for Main use ("alr2appimage.adb");
 
    package Compiler is
-      for Default_Switches ("Ada") use Alr_Appimage_Config.Ada_Compiler_Switches;
+      for Default_Switches ("Ada") use Alr2AppImage_Config.Ada_Compiler_Switches;
    end Compiler;
 
    package Binder is
@@ -19,4 +19,4 @@ project Alr_Appimage is
       for Artifacts (".") use ("share");
    end Install;
 
-end Alr_Appimage;
+end Alr2AppImage;

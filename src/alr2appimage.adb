@@ -4,7 +4,7 @@ with Ada.Directories;
 with Ada.Text_IO; use Ada.Text_IO;
 
 with Alire_TOML;
-with Alr_Appimage_Config;
+with Alr2appimage_Config;
 with Desktop_File;
 with File_Manager;
 with Runner;
@@ -13,7 +13,7 @@ with String_Vectors;
 with Parse_Args;
 with Resources;
 
-procedure Alr_Appimage is
+procedure Alr2AppImage is
 
    use Parse_Args;
 
@@ -23,7 +23,7 @@ procedure Alr_Appimage is
       Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
    end Report_Failure;
 
-   package My_Resources is new Resources (Alr_Appimage_Config.Crate_Name);
+   package My_Resources is new Resources (Alr2appimage_Config.Crate_Name);
 
    AP : Argument_Parser;
    Success : Boolean;
@@ -40,7 +40,7 @@ begin
                     & "i.e. the application is for the terminal or requires "
                     & "to be run from a terminal.");
 
-   AP.Add_Option (Make_String_Option (My_Resources.Resource_Path & "alr_appimage.png"),
+   AP.Add_Option (Make_String_Option (My_Resources.Resource_Path & "alr2appimage.png"),
                   "icon", 'i',
                   Usage => "Specify the icon file for the AppImage");
 
@@ -53,7 +53,7 @@ begin
       return;
 
    elsif AP.Parse_Success and then AP.Boolean_Value ("version") then
-      Put_Line (Alr_Appimage_Config.Crate_Name & " version: " & Alr_Appimage_Config.Crate_Version);
+      Put_Line (Alr2appimage_Config.Crate_Name & " version: " & Alr2appimage_Config.Crate_Version);
       return;
 
    elsif not AP.Parse_Success then
@@ -120,4 +120,4 @@ begin
       end Deploy;
    end Make_AppImage;
 
-end Alr_Appimage;
+end Alr2AppImage;
