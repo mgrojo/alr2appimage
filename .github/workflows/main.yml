@@ -59,9 +59,9 @@ jobs:
        - name: Build
          run: alr --non-interactive build
        - name: Build AppImage
-         run: VERSION=$(printf "dev-`git -C . rev-parse --short HEAD`") bin/alr_appimage
+         run: VERSION=$(printf "dev-`git -C . rev-parse --short HEAD`") bin/alr2appimage
        - name: Upload artifacts
          uses: actions/upload-artifact@v3
          with:
            name: build-artifacts
-           path: alr_appimage*.AppImage
+           path: alr2appimage*.AppImage
