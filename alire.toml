@@ -42,3 +42,10 @@ parse_args = "~0.9.0"
 
 [[depends-on]]
 resources = "~0.1.0"
+
+[available.'case(os)']
+'linux' = true
+'...' = false
+
+[build-switches]
+"*".style_checks = ["-gnaty3abBCrfklM99nptx"]
