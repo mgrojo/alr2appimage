@@ -17,8 +17,9 @@
 `alr2appimage` is a tool to automatically create an
 [AppImage](https://appimage.org/) executable from an Alire crate.
 
-> [!NOTE] `alr2appimage` is an independent project; it is not
-> affiliated to, nor supported by, Alire or AppImage projects.
+> [!NOTE]
+> `alr2appimage` is an independent project; it is not
+> affiliated to, nor supported by, the Alire or AppImage projects.
 
 # How to use the tool
 
@@ -92,3 +93,5 @@ useful for the users:
 
 # Building
 Can be built and installed after cloning the repository using Alire.
+
+You can also download an AppImage from the releases section.
