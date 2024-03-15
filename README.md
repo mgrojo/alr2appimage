@@ -1,8 +1,6 @@
-<!---
 [![Build](https://github.com/mgrojo/alr2appimage/actions/workflows/main.yml/badge.svg)](https://github.com/mgrojo/alr2appimage/actions/workflows/main.yml)
 [![Alire](https://img.shields.io/endpoint?url=https://alire.ada.dev/badges/alr2appimage.json)](https://alire.ada.dev/crates/alr2appimage.html)
 [![Alire CI/CD](https://img.shields.io/endpoint?url=https://alire-crate-ci.ada.dev/badges/alr2appimage.json)](https://alire-crate-ci.ada.dev/crates/alr2appimage.html)
--->
 [![Download][download-img]][download]
 [![Gitter chat](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/ada-lang/Lobby)
 [![Mentioned in Awesome Ada](https://awesome.re/mentioned-badge.svg)](https://github.com/ohenley/awesome-ada)
@@ -94,4 +92,5 @@ useful for the users:
 # Building
 Can be built and installed after cloning the repository using Alire.
 
-You can also download an AppImage from the releases section.
+You can also download an AppImage from the releases section or use
+`alr install alr2appimage` to install the utility from the Alire index.
