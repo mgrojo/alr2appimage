@@ -60,8 +60,9 @@ jobs:
          run: alr --non-interactive build
        - name: Build AppImage
          run: VERSION=$(printf "dev-`git -C . rev-parse --short HEAD`") bin/alr2appimage
-       - name: Upload artifacts
-         uses: actions/upload-artifact@v3
+       - name: Release
+         uses: softprops/action-gh-release@v2
          with:
-           name: build-artifacts
-           path: alr2appimage*.AppImage
+           files: alr2appimage*.AppImage
+           prerelease: true
+           tag_name: continuous
