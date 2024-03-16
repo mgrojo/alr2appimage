@@ -17,6 +17,8 @@ procedure Alr2AppImage is
 
    use Parse_Args;
 
+   Abort_Error : exception;
+
    procedure Report_Failure (Message : String) is
    begin
       Put_Line (File => Standard_Error, Item => Message);
@@ -44,6 +46,10 @@ begin
                   "icon", 'i',
                   Usage => "Specify the icon file for the AppImage");
 
+   AP.Add_Option (Make_String_Option (""),
+                  "executable", 'e',
+                  Usage => "Specify the executable for the AppImage (without path)");
+
    AP.Set_Prologue ("Makes an AppImage from your Alire crate.");
 
    AP.Parse_Command_Line;
@@ -68,16 +74,28 @@ begin
         := Alire_TOML.Read_String_List ("executables");
       Icon : constant String := AP.String_Value ("icon");
       Name : constant String := Alire_TOML.Read_Field ("name");
+
+      function Get_Executable return String
+      is
+      begin
+         if AP.String_Value ("executable") /= "" then
+            return AP.String_Value ("executable");
+         elsif Ada.Containers."=" (Executable_List.Length, 0) then
+            Report_Failure ("Error: the field 'executables' in 'alire.toml' is empty"
+                              & " and no executable was provided on the command line.");
+            raise Abort_Error;
+         else
+            return Executable_List.Element (Positive'First);
+         end if;
+      end Get_Executable;
+
+      Executable : constant String := Get_Executable;
    begin
-      if Ada.Containers."=" (Executable_List.Length, 0) then
-         Report_Failure ("Error: the field 'executables' in 'alire.toml' is empty");
-         return;
-      end if;
 
       Desktop_File.Write
         (Name => Name,
          Comment => Alire_TOML.Read_Field ("description"),
-         Exec => Executable_List.Element (Positive'First),
+         Exec => Executable,
          Icon => Ada.Directories.Base_Name (Icon),
          Terminal => AP.Boolean_Value ("terminal"),
          Tags => Alire_TOML.Read_String_List ("tags"));
@@ -103,7 +121,7 @@ begin
          end if;
 
          Runner.Run_Linuxdeploy (App_Dir => App_Dir,
-                                 Executable => Executable_List.Element (Positive'First),
+                                 Executable => Executable,
                                  Icon_File => Ada.Directories.Simple_Name (Icon),
                                  Success => Success);
 

@@ -73,7 +73,7 @@ package body Desktop_File is
 
       Desktop_File : File_Type;
    begin
-      Create (File => Desktop_File, Name => Name & ".desktop");
+      Create (File => Desktop_File, Name => Exec & ".desktop");
 
       Put_Line (Desktop_File, "[Desktop Entry]");
 
