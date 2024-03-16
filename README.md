@@ -58,10 +58,40 @@ field of the `your_crate.desktop` file:
 | | `Type` | This field of the desktop entry will be set to `Application`.
 | | `Icon` | By default, the included icon (`alr2appimage.png`) will be used. It can be orverriden using the `--icon your-icon-file` argument.
 
+## Including resources
+To include the resources, just add this section to your GPR file:
+```ada
+   package Install is
+      for Artifacts (".") use ("share");
+   end Install;
+```
+And include the resources in the repository in that directory, e.g. in `share/`.
+
 If your crate has resources, it is recommended to use the `resources`
 crate, or a similar mechanism, to properly load the resource files from
 the installation prefix.
 
+The next step is referencing the resources from the application. My recommendation is using the [resources crate](https://github.com/alire-project/resources). I'm doing this in `alr2appimage` itself for the default AppImage icon.
+
+Another approach, if you don't want to add another dependency, is doing the logic of getting the base directory of the executable by yourself. This is an example of how to do this, assuming it's running under Linux and the executable is located under `<prefix>/bin/`.
+```ada
+   function Application_Prefix return String is
+      Self_Exe : constant String := "/proc/self/exe";
+   begin
+      -- Get the resources path through the directory where the program is
+      -- located.
+      -- In this way we allow running from an AppImage and still find the
+      -- resource files.
+      --
+      if Ada.Directories.Exists (Self_Exe) then
+         return Ada.Directories.Containing_Directory
+           (Ada.Directories.Containing_Directory
+              (Ada.Directories.Full_Name (Self_Exe)));
+      else
+         return "";
+      end if;
+   end Application_Prefix;
+```
 # Usage
 ```
 Usage: alr2appimage [OPTIONS]...
