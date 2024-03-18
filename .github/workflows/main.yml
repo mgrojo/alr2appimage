@@ -41,6 +41,12 @@ jobs:
     name: Continuous AppImage
     runs-on: ubuntu-20.04
     steps:    
+       - name: Delete 'continuous' release and tag
+         uses: dev-drprasad/delete-tag-and-release@v1.0
+         with:
+           delete_release: true
+           github_token: ${{ secrets.GITHUB_TOKEN }}
+           tag_name: continuous
        - name: Checkout
          uses: actions/checkout@v2
        - name: ada-actions/toolchain
@@ -59,7 +65,7 @@ jobs:
        - name: Build
          run: alr --non-interactive build
        - name: Build AppImage
-         run: VERSION=$(printf "dev-`git -C . rev-parse --short HEAD`") bin/alr2appimage
+         run: VERSION=continuous bin/alr2appimage
        - name: Release
          uses: softprops/action-gh-release@v2
          with:
