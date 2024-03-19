@@ -23,8 +23,10 @@
 
 There are two prerequisites for your project to work with this tool:
 - It has to be a crate with an `executables` field. Its first value
-  has to be the main application program.
-- It must be installable using Alire, including all the needed resources.
+  has to be the main application program. Alternatively, you can
+  provide a value in the command line.
+- It must be installable using Alire or gprinstall, including all the
+  needed resources.
 
 
 `alr2appimage` will use the following command for installing it (this requires Alire 2.0):
@@ -48,15 +50,15 @@ for the AppImage. The following metadata will be read from your
 `alire.toml` for the generation, and will be matched to the equivalent
 field of the `your_crate.desktop` file:
 
-| Alire  | Desktop   | Comment  |
-|---|---|---|
-| `name` | `Name` | It will also be the base name of your AppImage file.
-| `description` | `Comment` |
-| `tags` | `Keywords` | Additionally, any of the tags matching (case-insensitively) one of the main categories in the [freedesktop.org menu specification](https://specifications.freedesktop.org/menu-spec/menu-spec-1.0.html) will be used as `Categories`.
-| `executables` | `Exec` | The first executable is used as entrypoint of the AppImage.
-| | `Terminal` | This field of the desktop entry will be set to `false` by default. It can be set to `true` passing the `--terminal` argument.
-| | `Type` | This field of the desktop entry will be set to `Application`.
-| | `Icon` | By default, the included icon (`alr2appimage.png`) will be used. It can be orverriden using the `--icon your-icon-file` argument.
+| Alire         | Desktop    | Comment                                                                                                                                                                                                                               |
+|---------------|------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `name`        | `Name`     | It will also be the base name of your AppImage file.                                                                                                                                                                                  |
+| `description` | `Comment`  |                                                                                                                                                                                                                                       |
+| `tags`        | `Keywords` | Additionally, any of the tags matching (case-insensitively) one of the main categories in the [freedesktop.org menu specification](https://specifications.freedesktop.org/menu-spec/menu-spec-1.0.html) will be used as `Categories`. |
+| `executables` | `Exec`     | The first executable is used as entrypoint of the AppImage. It can be orverriden using the `--executable your-executable-file` argument.                                                                                              |
+|               | `Terminal` | This field of the desktop entry will be set to `false` by default. It can be set to `true` passing the `--terminal` argument.                                                                                                         |
+|               | `Type`     | This field of the desktop entry will be set to `Application`.                                                                                                                                                                         |
+|               | `Icon`     | By default, the included icon (`alr2appimage.png`) will be used. It can be orverriden using the `--icon your-icon-file` argument.                                                                                                     |
 
 ## Including resources
 To include the resources, just add this section to your GPR file:
@@ -71,9 +73,17 @@ If your crate has resources, it is recommended to use the `resources`
 crate, or a similar mechanism, to properly load the resource files from
 the installation prefix.
 
-The next step is referencing the resources from the application. My recommendation is using the [resources crate](https://github.com/alire-project/resources). I'm doing this in `alr2appimage` itself for the default AppImage icon.
+The next step is referencing the resources from the application.  it
+is recommended to use the
+[resources crate](https://github.com/alire-project/resources),
+or a similar mechanism, to properly load the resource files from the installation
+prefix.  `alr2appimage` is doing this for the default AppImage icon.
 
-Another approach, if you don't want to add another dependency, is doing the logic of getting the base directory of the executable by yourself. This is an example of how to do this, assuming it's running under Linux and the executable is located under `<prefix>/bin/`.
+Another approach, if you don't want to add another dependency, is
+doing the logic of getting the base directory of the executable by
+yourself. This is an example of how to do this, assuming it's running
+under Linux and the executable is located under `<prefix>/bin/`.
+
 ```ada
    function Application_Prefix return String is
       Self_Exe : constant String := "/proc/self/exe";
@@ -92,6 +102,7 @@ Another approach, if you don't want to add another dependency, is doing the logi
       end if;
    end Application_Prefix;
 ```
+
 # Usage
 ```
 Usage: alr2appimage [OPTIONS]...
@@ -101,12 +112,13 @@ Makes an AppImage from your Alire crate.
   -V, --version    Display the version of this utility.
   -t, --terminal   Set the Terminal flag of the AppImage to true, i.e. the application is for the terminal or requires to be run from a terminal.
   -i, --icon       Specify the icon file for the AppImage
+  -e, --executable Specify the executable for the AppImage (without path)
 ```
 
 Run inside an Alire crate to create a default AppImage of your
-application.  With the corresponding arguments, you can provide your
-own icon and override the default value (false) for the terminal
-field.
+application.  With the corresponding arguments, you can override the
+executable, provide your own icon and override the default value
+(false) for the terminal field.
 
 
 # Status
