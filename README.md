@@ -61,17 +61,13 @@ field of the `your_crate.desktop` file:
 |               | `Icon`     | By default, the included icon (`alr2appimage.png`) will be used. It can be orverriden using the `--icon your-icon-file` argument.                                                                                                     |
 
 ## Including resources
-To include the resources, just add this section to your GPR file:
+If your crate has resources, the fist step is to just include this section to your GPR file:
 ```ada
    package Install is
       for Artifacts (".") use ("share");
    end Install;
 ```
-And include the resources in the repository in that directory, e.g. in `share/`.
-
-If your crate has resources, it is recommended to use the `resources`
-crate, or a similar mechanism, to properly load the resource files from
-the installation prefix.
+And add the resource files in the repository in that directory, e.g. in `share/`.
 
 The next step is referencing the resources from the application.  it
 is recommended to use the
@@ -122,7 +118,7 @@ executable, provide your own icon and override the default value
 
 
 # Status
-The tool considered complete, although it could be developed further.
+The tool is considered complete, although it could be developed further.
 
 The following feature could be implemented in the future, if deemed
 useful for the users:
