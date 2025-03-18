@@ -65,7 +65,7 @@ jobs:
        - name: Build
          run: alr --non-interactive build
        - name: Build AppImage
-         run: VERSION=continuous bin/alr2appimage
+         run: bin/alr2appimage --use-version
        - name: Release
          uses: softprops/action-gh-release@v2
          with:

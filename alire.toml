@@ -1,6 +1,6 @@
 name = "alr2appimage"
 description = "Tool to create an AppImage executable from an Alire crate"
-version = "0.9.3"
+version = "1.0.0-dev"
 website = "https://github.com/mgrojo/alr2appimage"
 long-description = """
 There are two prerequisites for your project to work with this tool:

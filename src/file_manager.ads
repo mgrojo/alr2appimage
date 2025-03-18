@@ -9,7 +9,11 @@ package File_Manager is
    --
    function Create_Temporary_Directory (Template : String) return String;
 
-   function To_AppImage_File (Name : String) return String is
-     (Name & '-' & Alr2appimage_Config.Alire_Host_Arch & ".AppImage");
+   function To_AppImage_File (Name : String; Version : String := "") return String
+   is (Name
+       & '-'
+       & (if Version = "" then "" else Version & '-')
+       & Alr2appimage_Config.Alire_Host_Arch
+       & ".AppImage");
 
 end File_Manager;

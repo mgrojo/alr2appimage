@@ -14,9 +14,10 @@ package Runner is
                                   Success : out Boolean);
 
    -- Run the linuxdeploy tool with the passed parameters.
+   -- If Version is empty, the version is not set for the AppImage.
    -- Set Success to True when OK, adn to False when the operation fails.
    --
-   procedure Run_Linuxdeploy (App_Dir, Executable, Icon_File : String;
+   procedure Run_Linuxdeploy (App_Dir, Executable, Icon_File, Version : String;
                               Success : out Boolean);
 
 end Runner;

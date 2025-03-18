@@ -109,6 +109,8 @@ Makes an AppImage from your Alire crate.
   -t, --terminal   Set the Terminal flag of the AppImage to true, i.e. the application is for the terminal or requires to be run from a terminal.
   -i, --icon       Specify the icon file for the AppImage
   -e, --executable Specify the executable for the AppImage (without path)
+  -u, --use-version 
+                   Use the crate version specified in the alire.toml for the AppImage
 ```
 
 Run inside an Alire crate to create a default AppImage of your

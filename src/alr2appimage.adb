@@ -50,6 +50,10 @@ begin
                   "executable", 'e',
                   Usage => "Specify the executable for the AppImage (without path)");
 
+   AP.Add_Option (Make_Boolean_Option (False),
+                  "use-version", 'u',
+                  Usage => "Use the crate version specified in the alire.toml for the AppImage");
+
    AP.Set_Prologue ("Makes an AppImage from your Alire crate.");
 
    AP.Parse_Command_Line;
@@ -74,6 +78,9 @@ begin
         := Alire_TOML.Read_String_List ("executables");
       Icon : constant String := AP.String_Value ("icon");
       Name : constant String := Alire_TOML.Read_Field ("name");
+      Version : constant String := (if AP.Boolean_Value ("use-version")
+                                    then Alire_TOML.Read_Field ("version")
+                                     else "");
 
       function Get_Executable return String
       is
@@ -123,6 +130,7 @@ begin
          Runner.Run_Linuxdeploy (App_Dir => App_Dir,
                                  Executable => Executable,
                                  Icon_File => Ada.Directories.Simple_Name (Icon),
+                                 Version => Version,
                                  Success => Success);
 
          Ada.Directories.Delete_Tree (App_Dir);
@@ -131,8 +139,17 @@ begin
             Report_Failure ("Running linuxdeploy failed. Aborting.");
             return;
          else
-            Put_Line ("Success! AppImage is ready in: " &
-                        File_Manager.To_AppImage_File (Name));
+            declare
+               AppImage_File : constant String :=
+                  File_Manager.To_AppImage_File (Name, Version);
+            begin
+               if Ada.Directories.Exists (AppImage_File) then
+                  Put_Line ("Success! AppImage is ready in: " & AppImage_File);
+               else
+                  Report_Failure ("Error: " & AppImage_File &
+                                     " file not found. Aborting.");
+               end if;
+            end;
          end if;
 
       end Deploy;

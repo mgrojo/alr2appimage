@@ -1,4 +1,5 @@
 with Ada.Directories;
+with Ada.Environment_Variables;
 with Ada.Strings.Unbounded;
 with Ada.Text_IO;
 
@@ -278,7 +279,7 @@ package body Runner is
       return Ada.Strings.Unbounded.To_String (Found_Filename);
    end Find_Executable;
 
-   procedure Run_Linuxdeploy (App_Dir, Executable, Icon_File : String;
+   procedure Run_Linuxdeploy (App_Dir, Executable, Icon_File, Version : String;
                               Success : out Boolean) is
 
       Install_Prefix : constant String := App_Dir & Installation_Subdir;
@@ -300,6 +301,10 @@ package body Runner is
       Arg_5 : aliased Spoon.Argument := Spoon.To_Argument (Arg_String_5);
 
    begin
+
+      if Version /= "" then
+         Ada.Environment_Variables.Set (Name => "VERSION", Value => Version);
+      end if;
 
       Run_Change_Mode (Success);
 
