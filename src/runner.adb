@@ -225,12 +225,16 @@ package body Runner is
       File_Not_Found : exception;
       Found_Filename : Ada.Strings.Unbounded.Unbounded_String;
 
-      procedure Find_First_File (Current_Dir : String) is
-
+      procedure Find_First_File (Current_Dir : String; Deepness : in out Natural) is
+         Maximum_Deepness : constant Natural := 10;
          Dir_Entry : Directory_Entry_Type;
          Dir_Search : Search_Type;
 
       begin
+         if Deepness = Maximum_Deepness then
+            return;
+         end if;
+         Deepness := Deepness + 1;
          Start_Search (Search => Dir_Search,
                        Directory => Current_Dir,
                        Pattern => "",
@@ -249,7 +253,7 @@ package body Runner is
                     Simple_Name (Dir_Entry) /= ".."
                   then
                      Find_First_File
-                       (Current_Dir => Full_Name (Dir_Entry));
+                       (Current_Dir => Full_Name (Dir_Entry), Deepness => Deepness);
                   end if;
                when Ordinary_File =>
                   if Simple_Name (Dir_Entry) = Executable then
@@ -266,11 +270,14 @@ package body Runner is
 
          End_Search (Dir_Search);
 
+         Deepness := Deepness - 1;
+
       end Find_First_File;
 
+      Deepness : Natural := 0;
    begin
 
-      Find_First_File (From_Dir);
+      Find_First_File (From_Dir, Deepness);
 
       if Ada.Strings.Unbounded.Length (Found_Filename) = 0 then
          raise File_Not_Found with Executable & " not found in crate directory.";
