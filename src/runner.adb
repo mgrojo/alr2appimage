@@ -226,7 +226,7 @@ package body Runner is
       Found_Filename : Ada.Strings.Unbounded.Unbounded_String;
 
       procedure Find_First_File (Current_Dir : String; Deepness : in out Natural) is
-         Maximum_Deepness : constant Natural := 10;
+         Maximum_Deepness : constant Natural := 5;
          Dir_Entry : Directory_Entry_Type;
          Dir_Search : Search_Type;
 
