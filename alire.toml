@@ -1,11 +1,12 @@
 name = "alr2appimage"
 description = "Tool to create an AppImage executable from an Alire crate"
-version = "1.0.0-dev"
+version = "1.0.0"
 website = "https://github.com/mgrojo/alr2appimage"
 long-description = """
 There are two prerequisites for your project to work with this tool:
-- It has to be a crate with an `executables` field. Its first value
-  has to be the main application program.
+- It has to be an Alire crate with an `executables` field. Its first value
+  has to be the main application program. Otherwise, the executable program
+  can be specified on the command line.
 - It must be installable using Alire, including all the needed resources.
 
 `alr2appimage` will use the following command for installing it (this requires Alire 2.0):
