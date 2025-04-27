@@ -25,7 +25,7 @@ There are two prerequisites for your project to work with this tool:
 - It has to be a crate with an `executables` field. Its first value
   has to be the main application program. Alternatively, you can
   provide a value in the command line.
-- It must be installable using Alire or gprinstall, including all the
+- It must be installable using Alire or `gprinstall`, including all the
   needed resources.
 
 
@@ -118,6 +118,8 @@ application.  With the corresponding arguments, you can override the
 executable, provide your own icon and override the default value
 (false) for the terminal field.
 
+# Using al2appimage from a GitHub Action
+You can easily invoke `al2appimage` from a GitHub Action using [alr2appimage-action](https://github.com/mgrojo/alr2appimage-action)
 
 # Status
 The tool is considered complete, although it could be developed further.
