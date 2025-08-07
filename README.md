@@ -1,3 +1,4 @@
+[![Ada](https://img.shields.io/badge/-inside-green?logo=ada&logoColor=white&labelColor=grey&logoSize=auto)](https://ada-lang.io/)
 [![Build](https://github.com/mgrojo/alr2appimage/actions/workflows/main.yml/badge.svg)](https://github.com/mgrojo/alr2appimage/actions/workflows/main.yml)
 [![Alire](https://img.shields.io/endpoint?url=https://alire.ada.dev/badges/alr2appimage.json)](https://alire.ada.dev/crates/alr2appimage.html)
 [![Alire CI/CD](https://img.shields.io/endpoint?url=https://alire-crate-ci.ada.dev/badges/alr2appimage.json)](https://alire-crate-ci.ada.dev/crates/alr2appimage.html)
