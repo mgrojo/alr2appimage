@@ -12,6 +12,7 @@ package body Runner is
    App_Dir_Template : constant String := "alr2appimage-AppDir-XXXXXX";
 
    Installation_Subdir : constant String := "/usr";
+   Icon_Path : constant String := "/share/icons/hicolor/128x128/apps/";
 
    Linuxdeploy_Program : constant String := File_Manager.To_AppImage_File ("linuxdeploy");
    Linuxdeploy_URL : constant String :=
@@ -44,25 +45,31 @@ package body Runner is
 
    end Report_State;
 
-   procedure Run_Copy_Icon (Icon : String; To_Dir : String; Success : out Boolean) is
+   procedure Run_Copy (Filename : String; To_Dir : String; Success : out Boolean) is
 
       Arg_1 : aliased Spoon.Argument := Spoon.To_Argument ("-p");
-      Arg_2 : aliased Spoon.Argument := Spoon.To_Argument (Icon);
+      Arg_2 : aliased Spoon.Argument := Spoon.To_Argument (Filename);
       Arg_3 : aliased Spoon.Argument := Spoon.To_Argument (To_Dir);
 
-      Result : constant Spoon.Result :=
-        Spoon.Spawn (Executable => "cp",
-                     Arguments => (Arg_1'Unchecked_Access,
-                                   Arg_2'Unchecked_Access,
-                                   Arg_3'Unchecked_Access),
-                     Kind => Spoon.Name);
    begin
 
-      Ada.Text_IO.Put_Line ("Copying icon " & Icon & " to " & To_Dir & "...");
+      Ada.Text_IO.Put_Line ("Copying " & Filename & " to " & To_Dir & "...");
 
-      Report_State (Result, Success);
+      if not Ada.Directories.Exists (To_Dir) then
+         Ada.Directories.Create_Path (To_Dir);
+      end if;
 
-   end Run_Copy_Icon;
+      declare
+         Result : constant Spoon.Result :=
+           Spoon.Spawn (Executable => "cp",
+                        Arguments => (Arg_1'Unchecked_Access,
+                                      Arg_2'Unchecked_Access,
+                                      Arg_3'Unchecked_Access),
+                        Kind => Spoon.Name);
+      begin
+         Report_State (Result, Success);
+      end;
+   end Run_Copy;
 
    --  Run gprinstall inside "alr exec". This is the fallback when running under
    --  a version of Alire without the "install" subcommand (1.x versions).
@@ -100,7 +107,7 @@ package body Runner is
 
    end Run_Gprinstall;
 
-   function Run_Alr_Install (Icon : String) return String
+   function Run_Alr_Install (Icon, Desktop_Filename : String) return String
    is
 
       App_Dir : constant String := File_Manager.Create_Temporary_Directory (App_Dir_Template);
@@ -131,8 +138,18 @@ package body Runner is
          Run_Gprinstall (Install_Prefix, Success);
       end if;
 
-      if Success then
-         Run_Copy_Icon (Icon, Install_Prefix, Success);
+      if Success and then Icon /= "" then
+         Run_Copy
+           (Filename => Icon,
+            To_Dir => Install_Prefix & Icon_Path,
+            Success => Success);
+      end if;
+
+      if Success and then Desktop_Filename /= "" then
+         Run_Copy
+           (Filename => Desktop_Filename,
+            To_Dir   => Install_Prefix & "/share/applications/",
+            Success  => Success);
       end if;
 
       if not Success then
@@ -296,7 +313,7 @@ package body Runner is
       Arg_String_2 : constant String := "--desktop-file="
         & Executable & ".desktop";
       Arg_String_3 : constant String := "--icon-file="
-        & Install_Prefix & "/" & Icon_File;
+        & Install_Prefix & Icon_Path & Icon_File;
       Arg_String_4 : constant String := "--appdir="
         & App_Dir;
       Arg_String_5 : constant String := "--output=appimage";
@@ -340,5 +357,49 @@ package body Runner is
       end;
 
    end Run_Linuxdeploy;
+
+
+   procedure Run_Dpkg_Build
+     (App_Dir, Filename : String; Success : out Boolean)
+   is
+
+      Dpkg_Program : constant String := "dpkg-deb";
+
+      Arg_String_1 : constant String := "--build";
+      Arg_String_2 : String renames App_Dir;
+      Arg_String_3 : String renames Filename;
+
+      Arg_1 : aliased Spoon.Argument := Spoon.To_Argument (Arg_String_1);
+      Arg_2 : aliased Spoon.Argument := Spoon.To_Argument (Arg_String_2);
+      Arg_3 : aliased Spoon.Argument := Spoon.To_Argument (Arg_String_3);
+
+   begin
+
+      Ada.Text_IO.Put_Line
+        ("Running: """
+         & Dpkg_Program
+         & " "
+         & Arg_String_1
+         & " "
+         & Arg_String_2
+         & " "
+         & Arg_String_3
+         & '"');
+
+      declare
+         Result : constant Spoon.Result :=
+           Spoon.Spawn
+             (Executable => Dpkg_Program,
+              Arguments  =>
+                (Arg_1'Unchecked_Access,
+                 Arg_2'Unchecked_Access,
+                 Arg_3'Unchecked_Access),
+              Kind       => Spoon.Name);
+      begin
+         Report_State (Result, Success);
+      end;
+
+   end Run_Dpkg_Build;
+
 
 end Runner;

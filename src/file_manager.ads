@@ -1,4 +1,5 @@
 with Alr2appimage_Config;
+with Basic_Types;
 
 package File_Manager is
 
@@ -9,11 +10,22 @@ package File_Manager is
    --
    function Create_Temporary_Directory (Template : String) return String;
 
-   function To_AppImage_File (Name : String; Version : String := "") return String
+   function To_Package_File
+     (Package_Kind : Basic_Types.Package_Kind;
+      Name         : String;
+      Version      : String := "") return String
    is (Name
        & '-'
        & (if Version = "" then "" else Version & '-')
        & Alr2appimage_Config.Alire_Host_Arch
-       & ".AppImage");
+       & "."
+       & (case Package_Kind is
+             when Basic_Types.AppImage => "AppImage",
+             when Basic_Types.Deb => "deb"));
+
+   function To_AppImage_File
+     (Name         : String;
+      Version      : String := "") return String
+   is (To_Package_File (Basic_Types.AppImage, Name, Version));
 
 end File_Manager;
