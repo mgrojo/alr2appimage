@@ -14,11 +14,11 @@
 # alr2appimage
 
 `alr2appimage` is a tool to automatically create an
-[AppImage](https://appimage.org/) executable from an Alire crate.
+[AppImage](https://appimage.org/) executable or Debian package from an Alire crate.
 
 > [!NOTE]
 > `alr2appimage` is an independent project; it is not
-> affiliated to, nor supported by, the Alire or AppImage projects.
+> affiliated to, nor supported by, the Alire, AppImage or Debian projects.
 
 # How to use the tool
 
@@ -37,26 +37,29 @@ alr install
 Or it will run `gprinstall` inside `alr exec`, if the former fails (Alire 1.x).
 
 If you simply run the tool inside an Alire crate, it will read the
-metadata from your `alire.toml` file and create a default AppImage
+metadata from your `alire.toml` file and create a default package
 from it.
 
-The utility [linuxdeploy](https://github.com/linuxdeploy/linuxdeploy)
+For the AppImage, the utility [linuxdeploy](https://github.com/linuxdeploy/linuxdeploy)
 is automatically downloaded using `curl` or `wget` tools. If you
 cannot install one of these utilities or lack an Internet connection in the
 host, just put a copy of the `linuxdeploy-your_arch.AppImage` in the
 crate directory, and it will be used by `alr2appimage`.
 
-This tool will generate a valid [Destop Entry](https://specifications.freedesktop.org/desktop-entry-spec/latest/)
-for the AppImage. The following metadata will be read from your
+For the Debian package, the `dpkg-deb` utility, mandatory in every Debian-based distribution
+is used for creating the package.
+
+`alr2appimage` will generate a valid [Destop Entry](https://specifications.freedesktop.org/desktop-entry-spec/latest/)
+for the package. The following metadata will be read from your
 `alire.toml` for the generation, and will be matched to the equivalent
 field of the `your_crate.desktop` file:
 
 | Alire         | Desktop    | Comment                                                                                                                                                                                                                               |
 |---------------|------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `name`        | `Name`     | It will also be the base name of your AppImage file.                                                                                                                                                                                  |
+| `name`        | `Name`     | It will also be the base name of your AppImage or Deb file.                                                                                                                                                                                  |
 | `description` | `Comment`  |                                                                                                                                                                                                                                       |
 | `tags`        | `Keywords` | Additionally, any of the tags matching (case-insensitively) one of the main categories in the [freedesktop.org menu specification](https://specifications.freedesktop.org/menu-spec/menu-spec-1.0.html) will be used as `Categories`. |
-| `executables` | `Exec`     | The first executable is used as entrypoint of the AppImage. It can be orverriden using the `--executable your-executable-file` argument.                                                                                              |
+| `executables` | `Exec`     | The first executable is used as entrypoint of the Desktop file. It can be orverriden using the `--executable your-executable-file` argument.                                                                                              |
 |               | `Terminal` | This field of the desktop entry will be set to `false` by default. It can be set to `true` passing the `--terminal` argument.                                                                                                         |
 |               | `Type`     | This field of the desktop entry will be set to `Application`.                                                                                                                                                                         |
 |               | `Icon`     | By default, the included icon (`alr2appimage.png`) will be used. It can be orverriden using the `--icon your-icon-file` argument.                                                                                                     |
@@ -74,7 +77,7 @@ The next step is referencing the resources from the application.  it
 is recommended to use the
 [resources crate](https://github.com/alire-project/resources),
 or a similar mechanism, to properly load the resource files from the installation
-prefix.  `alr2appimage` is doing this for the default AppImage icon.
+prefix.  `alr2appimage` is doing this for the default desktop icon.
 
 Another approach, if you don't want to add another dependency, is
 doing the logic of getting the base directory of the executable by
@@ -103,34 +106,39 @@ under Linux and the executable is located under `<prefix>/bin/`.
 # Usage
 ```
 Usage: alr2appimage [OPTIONS]...
-Makes an AppImage from your Alire crate.
+Makes an AppImage or Debian package from your Alire crate.
 
   -h, --help       Display this help text.
   -V, --version    Display the version of this utility.
-  -t, --terminal   Set the Terminal flag of the AppImage to true, i.e. the application is for the terminal or requires to be run from a terminal.
-  -i, --icon       Specify the icon file for the AppImage
-  -e, --executable Specify the executable for the AppImage (without path)
+  -o, --out-package Specify the kind of package to create: AppImage (default) or Deb.
+  -t, --terminal   Set the Terminal flag of the desktop entry to true, i.e. the application is for the terminal or requires to be run from a terminal.
+  -i, --icon       Specify the icon file for the package
+  -e, --executable Specify the executable for the package (without path)
   -u, --use-version 
-                   Use the crate version specified in the alire.toml for the AppImage
+                   Use the crate version specified in the alire.toml for the AppImage.
+                   The default for Debian package.
 ```
 
-Run inside an Alire crate to create a default AppImage of your
+Run inside an Alire crate to create a default AppImage or Debian package of your
 application.  With the corresponding arguments, you can override the
-executable, provide your own icon and override the default value
+executable, provide your own 128x128 icon and override the default value
 (false) for the terminal field.
 
 # Using al2appimage from a GitHub Action
 You can easily invoke `al2appimage` from a GitHub Action using [alr2appimage-action](https://github.com/mgrojo/alr2appimage-action)
 
 # Status
-The tool is considered complete, although it could be developed further.
+The tool is considered complete, although it might be developed further.
 
-The following feature could be implemented in the future, if deemed
+The following features could be implemented in the future, if deemed
 useful for the users:
 - Not implemented yet: If the defaults are not good for your
   project, you can also define a template for your desktop file, and
   only the fields that you want will be included from the `alire.toml`
   or initialized by this utility.
+- RPM support.
+- The Debian package does not include any dependency. A way for them to be
+  specified by the user or automatically determined could be added in the future.
 
 # Building
 Can be built and installed after cloning the repository using Alire.

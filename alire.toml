@@ -1,6 +1,6 @@
 name = "alr2appimage"
-description = "Tool to create an AppImage executable from an Alire crate"
-version = "1.0.0"
+description = "Tool to create an AppImage executable or Debian package from an Alire crate"
+version = "1.1.0-dev"
 website = "https://github.com/mgrojo/alr2appimage"
 long-description = """
 There are two prerequisites for your project to work with this tool:
@@ -16,16 +16,16 @@ alr install
 Or it will run `gprinstall` inside `alr exec`, if the former fails (Alire 1.x).
 
 If you simply run the tool inside an Alire crate, it will read the
-metadata from your `alire.toml` file and create a default AppImage
-from it.
+metadata from your `alire.toml` file and create a default AppImage or Debian
+package from it.
 
 NOTE: `alr2appimage` is an independent project; it is not
-affiliated to, nor supported by, the Alire or AppImage projects.
+affiliated to, nor supported by, the Alire, AppImage or Debian projects.
 
 """
 licenses = "GPL-3.0-only"
 
-tags = ["utility", "appimage", "alire", "linux", "packaging"]
+tags = ["utility", "appimage", "deb", "alire", "linux", "packaging"]
 
 authors = ["Manuel Gomez"]
 maintainers = ["Manuel Gomez <mgrojo@gmail.com>"]
@@ -33,7 +33,7 @@ maintainers-logins = ["mgrojo"]
 
 executables = ["alr2appimage"]
 [[depends-on]]
-ada_toml = "^0.3.0"
+ada_toml = "~0.5.0"
 
 [[depends-on]]
 spoon = "^1.0.1"
@@ -50,3 +50,6 @@ resources = "~0.1.0"
 
 [build-switches]
 "*".style_checks = ["-gnaty3abBCrfklM99nptx"]
+
+[[pins]]
+parse_args = { path='../parse_args' }

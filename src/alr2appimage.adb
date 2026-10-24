@@ -5,13 +5,18 @@ with Ada.Text_IO; use Ada.Text_IO;
 
 with Alire_TOML;
 with Alr2appimage_Config;
+with Basic_Types;
+with Deb_Package;
 with Desktop_File;
 with File_Manager;
 with Runner;
 with String_Vectors;
 
 with Parse_Args;
+with Package_Kind_Options;
+
 with Resources;
+
 
 procedure Alr2AppImage is
 
@@ -36,6 +41,11 @@ begin
 
    AP.Add_Option (Make_Boolean_Option (False), "version", 'V',
                   Usage => "Display the version of this utility.");
+
+   AP.Add_Option (Package_Kind_Options.Make_Option (Basic_Types.AppImage),
+                  "out-package", 'o',
+                  Usage =>
+                   "Specify the kind of package to create (AppImage or Deb).");
 
    AP.Add_Option (Make_Boolean_Option (False), "terminal", 't',
                   Usage => "Set the Terminal flag of the AppImage to true, "
@@ -73,14 +83,18 @@ begin
 
    Alire_TOML.Load_Alire;
 
-   Make_AppImage : declare
+   Make_Package :
+   declare
       Executable_List : constant String_Vectors.Vector
         := Alire_TOML.Read_String_List ("executables");
       Icon : constant String := AP.String_Value ("icon");
+      Package_Kind : constant Basic_Types.Package_Kind :=
+        Package_Kind_Options.Value (AP, "out-package");
       Name : constant String := Alire_TOML.Read_Field ("name");
-      Version : constant String := (if AP.Boolean_Value ("use-version")
-                                    then Alire_TOML.Read_Field ("version")
-                                     else "");
+      Version : constant String :=
+        (if Package_Kind in Basic_Types.Deb or else AP.Boolean_Value ("use-version")
+         then Alire_TOML.Read_Field ("version")
+         else "");
 
       function Get_Executable return String
       is
@@ -107,8 +121,13 @@ begin
          Terminal => AP.Boolean_Value ("terminal"),
          Tags => Alire_TOML.Read_String_List ("tags"));
 
-      Deploy : declare
-         App_Dir : constant String := Runner.Run_Alr_Install (Icon);
+      Deploy :
+      declare
+         App_Dir : constant String := Runner.Run_Alr_Install
+          (Icon => Icon,
+           Desktop_Filename => Executable & ".desktop");
+         Package_File : constant String :=
+           File_Manager.To_Package_File (Package_Kind, Name, Version);
       begin
 
          if App_Dir = "" then
@@ -116,43 +135,57 @@ begin
             return;
          end if;
 
-         Runner.Run_Get_Linuxdeploy (Use_Tool => Runner.Curl, Success => Success);
+         case Package_Kind is
+            when Basic_Types.AppImage =>
+               Runner.Run_Get_Linuxdeploy (Use_Tool => Runner.Curl, Success => Success);
+
+               if not Success then
+                  Runner.Run_Get_Linuxdeploy (Use_Tool => Runner.Wget, Success => Success);
+
+                  if not Success then
+                     Report_Failure
+                      ("Downloading linuxdeploy failed. Please, install wget or curl.");
+                     return;
+                  end if;
+               end if;
+
+               Runner.Run_Linuxdeploy (App_Dir => App_Dir,
+                                       Executable => Executable,
+                                       Icon_File => Ada.Directories.Simple_Name (Icon),
+                                       Version => Version,
+                                       Success => Success);
+            when Basic_Types.Deb =>
+
+               Deb_Package.Write_Control
+                 (App_Dir    => App_Dir,
+                  Name       => Name,
+                  Comment    => Alire_TOML.Read_Field ("description"),
+                  Exec       => Executable,
+                  Maintainer => Alire_TOML.Read_String_List ("maintainers") (1),
+                  Version    => Version,
+                  Tags       => Alire_TOML.Read_String_List ("tags"));
+
+               Runner.Run_Dpkg_Build
+                 (App_Dir  => App_Dir,
+                  Filename => Package_File,
+                  Success  => Success);
+         end case;
+
 
          if not Success then
-            Runner.Run_Get_Linuxdeploy (Use_Tool => Runner.Wget, Success => Success);
-
-            if not Success then
-               Report_Failure ("Downloading linuxdeploy failed. Please, install wget or curl.");
-               return;
+            Report_Failure ("Running package tool failed. Aborting.");
+            return;
+         else
+            Ada.Directories.Delete_Tree (App_Dir);
+            if Ada.Directories.Exists (Package_File) then
+               Put_Line ("Success! Package is ready in: " & Package_File);
+            else
+               Report_Failure ("Error: " & Package_File &
+                                    " file not found. Aborting.");
             end if;
          end if;
 
-         Runner.Run_Linuxdeploy (App_Dir => App_Dir,
-                                 Executable => Executable,
-                                 Icon_File => Ada.Directories.Simple_Name (Icon),
-                                 Version => Version,
-                                 Success => Success);
-
-         Ada.Directories.Delete_Tree (App_Dir);
-
-         if not Success then
-            Report_Failure ("Running linuxdeploy failed. Aborting.");
-            return;
-         else
-            declare
-               AppImage_File : constant String :=
-                  File_Manager.To_AppImage_File (Name, Version);
-            begin
-               if Ada.Directories.Exists (AppImage_File) then
-                  Put_Line ("Success! AppImage is ready in: " & AppImage_File);
-               else
-                  Report_Failure ("Error: " & AppImage_File &
-                                     " file not found. Aborting.");
-               end if;
-            end;
-         end if;
-
       end Deploy;
-   end Make_AppImage;
+   end Make_Package;
 
 end Alr2AppImage;
