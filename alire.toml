@@ -1,5 +1,5 @@
 name = "alr2appimage"
-description = "Tool to create an AppImage executable or Debian package from an Alire crate"
+description = "Tool to create an AppImage or Debian package from an Alire crate"
 version = "1.1.0-dev"
 website = "https://github.com/mgrojo/alr2appimage"
 long-description = """
