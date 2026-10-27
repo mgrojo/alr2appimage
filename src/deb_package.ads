@@ -1,3 +1,4 @@
+with Ada.Strings.Unbounded;
 with String_Vectors;
 
 package Deb_Package is
@@ -6,12 +7,15 @@ package Deb_Package is
    -- See https://www.debian.org/doc/debian-policy/ch-controlfields.html
    --
    procedure Write_Control
-     (App_Dir : String;
-      Name     : String;
-      Comment  : String;
-      Exec     : String;
-      Maintainer : String;
-      Version  : String;
-      Tags     : String_Vectors.Vector);
+     (App_Dir        : String;
+      Name           : String;
+      Comment        : String;
+      Exec           : String;
+      Maintainer     : String;
+      Version        : String;
+      Tags           : String_Vectors.Vector;
+      Dependencies   : Ada.Strings.Unbounded.Unbounded_String :=
+         Ada.Strings.Unbounded.Null_Unbounded_String;
+      Include_Source : Boolean := False);
 
 end Deb_Package;

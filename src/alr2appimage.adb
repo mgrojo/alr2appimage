@@ -1,6 +1,7 @@
 with Ada.Command_Line;
 with Ada.Containers;
 with Ada.Directories;
+with Ada.Strings.Unbounded;
 with Ada.Text_IO; use Ada.Text_IO;
 
 with Alire_TOML;
@@ -157,18 +158,42 @@ begin
             when Basic_Types.Deb =>
 
                Deb_Package.Write_Control
-                 (App_Dir    => App_Dir,
-                  Name       => Name,
-                  Comment    => Alire_TOML.Read_Field ("description"),
-                  Exec       => Executable,
-                  Maintainer => Alire_TOML.Read_String_List ("maintainers") (1),
-                  Version    => Version,
-                  Tags       => Alire_TOML.Read_String_List ("tags"));
+                 (App_Dir        => App_Dir,
+                  Name           => Name,
+                  Comment        => Alire_TOML.Read_Field ("description"),
+                  Exec           => Executable,
+                  Maintainer     =>
+                    Alire_TOML.Read_String_List ("maintainers") (1),
+                  Version        => Version,
+                  Tags           => Alire_TOML.Read_String_List ("tags"),
+                  Include_Source => True);
 
+               declare
+                  Dependencies : Ada.Strings.Unbounded.Unbounded_String;
+               begin
+                  Runner.Run_Dpkg_Dependencies
+                    (App_Dir      => App_Dir,
+                     Executable   => Executable,
+                     Success      => Success,
+                     Dependencies => Dependencies);
+
+                  Deb_Package.Write_Control
+                    (App_Dir        => App_Dir,
+                     Name           => Name,
+                     Comment        => Alire_TOML.Read_Field ("description"),
+                     Exec           => Executable,
+                     Maintainer     =>
+                       Alire_TOML.Read_String_List ("maintainers") (1),
+                     Version        => Version,
+                     Tags           => Alire_TOML.Read_String_List ("tags"),
+                     Dependencies   => Dependencies,
+                     Include_Source => False);
+               end;
                Runner.Run_Dpkg_Build
-                 (App_Dir  => App_Dir,
-                  Filename => Package_File,
-                  Success  => Success);
+                 (App_Dir      => App_Dir,
+                  Filename     => Package_File,
+                  Success      => Success);
+
          end case;
 
 

@@ -118,18 +118,29 @@ package body Deb_Package is
       Exec : String;
       Maintainer : String;
       Version : String;
-      Tags : String_Vectors.Vector) is
+      Tags : String_Vectors.Vector;
+      Dependencies : Ada.Strings.Unbounded.Unbounded_String :=
+         Ada.Strings.Unbounded.Null_Unbounded_String;
+      Include_Source : Boolean := False) is
 
       Control_File : File_Type;
       Section_Added : Boolean := False;
       Debian_Architecture : constant String :=
         Debian_Architecture_Of (Alr2appimage_Config.Alire_Host_Arch);
+      Debian_Name : constant String := Debian_Name_Of (Name);
+      Directory : constant String :=
+         (if Include_Source
+          then App_Dir & "/debian"
+          else App_Dir & "/DEBIAN");
    begin
 
-      Ada.Directories.Create_Directory (App_Dir & "/DEBIAN");
-      Create (File => Control_File, Name => App_Dir & "/DEBIAN/control");
+      Ada.Directories.Create_Path (Directory);
+      Create (File => Control_File, Name => Directory & "/control");
 
-      Put_Value (Control_File, "Package", Debian_Name_Of (Name));
+      if Include_Source then
+         Put_Value (Control_File, "Source", Debian_Name);
+      end if;
+      Put_Value (Control_File, "Package", Debian_Name);
       -- The "-1" is the debian_revision
       Put_Value (Control_File, "Version", Version & "-1");
       for Tag of Tags loop
@@ -148,6 +159,14 @@ package body Deb_Package is
       end if;
       Put_Value (Control_File, "Priority", "optional");
       Put_Value (Control_File, "Architecture", Debian_Architecture);
+
+      if Ada.Strings.Unbounded.Length (Dependencies) > 0 then
+         Put_Value
+           (Control_File,
+            "Depends",
+            Ada.Strings.Unbounded.To_String (Dependencies));
+      end if;
+
       Put_Value (Control_File, "Maintainer", Maintainer);
       Put_Value (Control_File, "Description", Comment);
 
