@@ -1,3 +1,5 @@
+with Ada.Strings.Unbounded;
+
 package Runner is
 
    -- Create a temporary directory, install the application on it, and
@@ -20,6 +22,14 @@ package Runner is
    --
    procedure Run_Linuxdeploy
      (App_Dir, Executable, Icon_File, Version : String; Success : out Boolean);
+
+
+   -- Set Success to True when OK, and to False when the operation fails.
+   --
+   procedure Run_Dpkg_Dependencies
+     (App_Dir, Executable : String;
+      Success : out Boolean;
+      Dependencies : out Ada.Strings.Unbounded.Unbounded_String);
 
    -- Set Success to True when OK, and to False when the operation fails.
    --

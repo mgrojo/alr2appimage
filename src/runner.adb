@@ -1,6 +1,5 @@
 with Ada.Directories;
 with Ada.Environment_Variables;
-with Ada.Strings.Unbounded;
 with Ada.Text_IO;
 
 with File_Manager;
@@ -358,9 +357,73 @@ package body Runner is
 
    end Run_Linuxdeploy;
 
+   procedure Run_Dpkg_Dependencies
+     (App_Dir, Executable : String;
+      Success : out Boolean;
+      Dependencies : out Ada.Strings.Unbounded.Unbounded_String)
+   is
+
+      Dependencies_Program : constant String := "dpkg-shlibdeps";
+      Arg_String_1 : constant String := "-e";
+      Arg_String_2 : constant String := Installation_Subdir & "/bin/" & Executable;
+
+      Arg_1 : aliased Spoon.Argument := Spoon.To_Argument (Arg_String_1);
+      Arg_2 : aliased Spoon.Argument := Spoon.To_Argument (Arg_String_2);
+
+   begin
+
+      Ada.Directories.Set_Directory (App_Dir);
+
+      Ada.Text_IO.Put_Line
+         ("Running: """
+         & Dependencies_Program
+         & " "
+         & Arg_String_1
+         & " "
+         & Arg_String_2
+         & '"' & " in directory: " & App_Dir);
+
+      declare
+
+         Result : constant Spoon.Result :=
+            Spoon.Spawn
+               (Executable => Dependencies_Program,
+               Arguments  =>
+                  (1 => Arg_1'Unchecked_Access,
+                  2 => Arg_2'Unchecked_Access),
+               Kind       => Spoon.Name);
+         Dependencies_File : Ada.Text_IO.File_Type;
+         Unwanted_Prefix : constant String := "shlibs:Depends=";
+      begin
+         Report_State (Result, Success);
+
+         if Success then
+            --  Read the dependencies from the file "debian/substvars"
+            --  and remove the prefix "shlibs:Depends=".
+            --
+            Ada.Text_IO.Open
+              (File => Dependencies_File,
+               Name => "debian/substvars",
+               Mode => Ada.Text_IO.In_File);
+
+            Dependencies :=
+              Ada.Strings.Unbounded.To_Unbounded_String
+                (Ada.Text_IO.Get_Line (File => Dependencies_File));
+            Dependencies :=
+              Ada.Strings.Unbounded.Unbounded_Slice
+                (Dependencies,
+                 Unwanted_Prefix'Length + 1,
+                 Ada.Strings.Unbounded.Length (Dependencies));
+            Ada.Text_IO.Close (Dependencies_File);
+            Ada.Directories.Set_Directory ("..");
+         end if;
+      end;
+   end Run_Dpkg_Dependencies;
+
 
    procedure Run_Dpkg_Build
-     (App_Dir, Filename : String; Success : out Boolean)
+     (App_Dir, Filename : String;
+      Success : out Boolean)
    is
 
       Dpkg_Program : constant String := "dpkg-deb";
