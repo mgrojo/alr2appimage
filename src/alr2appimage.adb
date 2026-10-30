@@ -194,6 +194,13 @@ begin
                      Success      => Success,
                      Dependencies => Dependencies);
 
+                  if not Success then
+                     Report_Failure
+                       ("Running dpkg-shlibdeps failed. "
+                        & "Please, install `dpkg-dev` package. Aborting.");
+                     return;
+                  end if;
+
                   -- Write control file again with the dependencies added.
                   Deb_Package.Write_Control
                     (App_Dir        => App_Dir,
@@ -206,11 +213,11 @@ begin
                      Tags           => Alire_TOML.Read_String_List ("tags"),
                      Dependencies   => Dependencies,
                      Include_Source => False);
+                  Runner.Run_Dpkg_Build
+                    (App_Dir      => App_Dir,
+                     Filename     => Package_File,
+                     Success      => Success);
                end;
-               Runner.Run_Dpkg_Build
-                 (App_Dir      => App_Dir,
-                  Filename     => Package_File,
-                  Success      => Success);
 
          end case;
 
