@@ -46,8 +46,14 @@ cannot install one of these utilities or lack an Internet connection in the
 host, just put a copy of the `linuxdeploy-your_arch.AppImage` in the
 crate directory, and it will be used by `alr2appimage`.
 
-For the Debian package, the `dpkg-deb` utility, mandatory in every Debian-based distribution
-is used for creating the package.
+For the Debian package, the `dpkg-deb` utility, mandatory in every Debian-based distribution,
+is used for creating the package. In order to obtain the library dependencies
+needed by the package, the `dpkg-shlibdeps` command is run.
+This tool is installed by the `dpkg-dev` package:
+
+```sh
+sudo apt install dpkg-dev
+```
 
 `alr2appimage` will generate a valid [Destop Entry](https://specifications.freedesktop.org/desktop-entry-spec/latest/)
 for the package. The following metadata will be read from your
@@ -137,8 +143,6 @@ useful for the users:
   only the fields that you want will be included from the `alire.toml`
   or initialized by this utility.
 - RPM support.
-- The Debian package does not include any dependency. A way for them to be
-  specified by the user or automatically determined could be added in the future.
 
 # Building
 Can be built and installed after cloning the repository using Alire.
