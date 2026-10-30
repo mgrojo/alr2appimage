@@ -1,4 +1,3 @@
-with Ada.Characters.Handling;
 with Ada.Directories;
 with Ada.Strings.Equal_Case_Insensitive;
 with Ada.Strings.Fixed;
@@ -76,15 +75,6 @@ package body Deb_Package is
       Put_Line (File, Key & ": " & Value);
    end Put_Value;
 
-   procedure Put_Value
-     (File : File_Type;
-      Key : String;
-      Value : Boolean) is
-   begin
-      Put_Line (File, Key & ": " &
-                  Ada.Characters.Handling.To_Lower (Value'Image));
-   end Put_Value;
-
    function Map_Char (C : Character) return Character
    is (if C = '_' then '-' else C);
 
@@ -123,18 +113,33 @@ package body Deb_Package is
          Ada.Strings.Unbounded.Null_Unbounded_String;
       Include_Source : Boolean := False) is
 
-      Control_File : File_Type;
-      Section_Added : Boolean := False;
+      Control_File        : File_Type;
+      Section_Added       : Boolean := False;
       Debian_Architecture : constant String :=
         Debian_Architecture_Of (Alr2appimage_Config.Alire_Host_Arch);
-      Debian_Name : constant String := Debian_Name_Of (Name);
-      Directory : constant String :=
-         (if Include_Source
-          then App_Dir & "/debian"
-          else App_Dir & "/DEBIAN");
+      Debian_Name         : constant String := Debian_Name_Of (Name);
+
+      -- Directory structure expected by dpkg tools:
+      --  ├── debian
+      --  │   └── control <-- With source included
+      --  └── package
+      --      ├── DEBIAN
+      --      │   └── control <-- Without source
+      --      └── usr
+      --          ├── bin
+      --
+      Outer_Directory : constant String :=
+        Ada.Directories.Containing_Directory
+          (Ada.Directories.Full_Name (App_Dir))
+        & "/debian";
+      Inner_Directory : constant String := App_Dir & "/DEBIAN";
+      Directory       : constant String :=
+        (if Include_Source then Outer_Directory else Inner_Directory);
    begin
 
-      Ada.Directories.Create_Path (Directory);
+      Ada.Directories.Create_Path (Inner_Directory);
+      Ada.Directories.Create_Path (Outer_Directory);
+
       Create (File => Control_File, Name => Directory & "/control");
 
       if Include_Source then
