@@ -44,12 +44,8 @@ package body Runner is
 
    end Report_State;
 
-   procedure Run_Copy (Filename : String; To_Dir : String; Success : out Boolean) is
-
-      Arg_1 : aliased Spoon.Argument := Spoon.To_Argument ("-p");
-      Arg_2 : aliased Spoon.Argument := Spoon.To_Argument (Filename);
-      Arg_3 : aliased Spoon.Argument := Spoon.To_Argument (To_Dir);
-
+   procedure Run_Copy
+     (Filename : String; To_Dir : String; Success : out Boolean) is
    begin
 
       Ada.Text_IO.Put_Line ("Copying " & Filename & " to " & To_Dir & "...");
@@ -58,16 +54,17 @@ package body Runner is
          Ada.Directories.Create_Path (To_Dir);
       end if;
 
-      declare
-         Result : constant Spoon.Result :=
-           Spoon.Spawn (Executable => "cp",
-                        Arguments => (Arg_1'Unchecked_Access,
-                                      Arg_2'Unchecked_Access,
-                                      Arg_3'Unchecked_Access),
-                        Kind => Spoon.Name);
       begin
-         Report_State (Result, Success);
+         Ada.Directories.Copy_File
+           (Source_Name => Filename,
+            Target_Name =>
+              To_Dir & "/" & Ada.Directories.Simple_Name (Filename));
+      exception
+         when Ada.Directories.Name_Error =>
+            Success := False;
       end;
+      Success := True;
+
    end Run_Copy;
 
    --  Run gprinstall inside "alr exec". This is the fallback when running under
@@ -106,26 +103,37 @@ package body Runner is
 
    end Run_Gprinstall;
 
-   function Run_Alr_Install (Icon, Desktop_Filename : String) return String
+   function Run_Alr_Install
+     (Icon, Desktop_Filename : String; Package_Kind : Basic_Types.Package_Kind)
+      return String
    is
 
-      App_Dir : constant String := File_Manager.Create_Temporary_Directory (App_Dir_Template);
+      Temporary_Dir : constant String :=
+        File_Manager.Create_Temporary_Directory (App_Dir_Template);
 
-      Install_Prefix : constant String := App_Dir & Installation_Subdir;
+      App_Dir : constant String :=
+        (if Package_Kind in Basic_Types.Deb
+         then Temporary_Dir & "/package"
+         else Temporary_Dir);
+
+      Install_Prefix : constant String :=
+        App_Dir & Installation_Subdir;
 
       Arg_1 : aliased Spoon.Argument := Spoon.To_Argument ("--force");
       Arg_2 : aliased Spoon.Argument := Spoon.To_Argument ("install");
-      Arg_3 : aliased Spoon.Argument
-        := Spoon.To_Argument ("--prefix=" & Install_Prefix);
+      Arg_3 : aliased Spoon.Argument :=
+        Spoon.To_Argument ("--prefix=" & Install_Prefix);
 
       Success : Boolean := False;
 
       Result : constant Spoon.Result :=
-        Spoon.Spawn (Executable => "alr",
-                     Arguments => (Arg_1'Unchecked_Access,
-                                   Arg_2'Unchecked_Access,
-                                   Arg_3'Unchecked_Access),
-                     Kind => Spoon.Name);
+        Spoon.Spawn
+          (Executable => "alr",
+           Arguments  =>
+             (Arg_1'Unchecked_Access,
+              Arg_2'Unchecked_Access,
+              Arg_3'Unchecked_Access),
+           Kind       => Spoon.Name);
    begin
 
       Ada.Text_IO.Put_Line ("Finished: ""alr install""");
@@ -140,8 +148,8 @@ package body Runner is
       if Success and then Icon /= "" then
          Run_Copy
            (Filename => Icon,
-            To_Dir => Install_Prefix & Icon_Path,
-            Success => Success);
+            To_Dir   => Install_Prefix & Icon_Path,
+            Success  => Success);
       end if;
 
       if Success and then Desktop_Filename /= "" then
@@ -363,25 +371,30 @@ package body Runner is
       Dependencies : out Ada.Strings.Unbounded.Unbounded_String)
    is
 
+      Working_Dir : constant String := Ada.Directories.Containing_Directory (Ada.Directories.Full_Name (App_Dir));
+
       Dependencies_Program : constant String := "dpkg-shlibdeps";
       Arg_String_1 : constant String := "-e";
-      Arg_String_2 : constant String := Installation_Subdir & "/bin/" & Executable;
+      Arg_String_2 : constant String := Ada.Directories.Simple_Name (App_Dir)
+         & Installation_Subdir & "/bin/" & Executable;
 
       Arg_1 : aliased Spoon.Argument := Spoon.To_Argument (Arg_String_1);
       Arg_2 : aliased Spoon.Argument := Spoon.To_Argument (Arg_String_2);
 
    begin
 
-      Ada.Directories.Set_Directory (App_Dir);
+      Ada.Directories.Set_Directory (Working_Dir);
 
       Ada.Text_IO.Put_Line
-         ("Running: """
+        ("Running: """
          & Dependencies_Program
          & " "
          & Arg_String_1
          & " "
          & Arg_String_2
-         & '"' & " in directory: " & App_Dir);
+         & '"'
+         & " in directory: "
+         & Working_Dir);
 
       declare
 
@@ -390,7 +403,7 @@ package body Runner is
                (Executable => Dependencies_Program,
                Arguments  =>
                   (1 => Arg_1'Unchecked_Access,
-                  2 => Arg_2'Unchecked_Access),
+                   2 => Arg_2'Unchecked_Access),
                Kind       => Spoon.Name);
          Dependencies_File : Ada.Text_IO.File_Type;
          Unwanted_Prefix : constant String := "shlibs:Depends=";

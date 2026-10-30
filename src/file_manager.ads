@@ -1,4 +1,3 @@
-with Alr2appimage_Config;
 with Basic_Types;
 
 package File_Manager is
@@ -13,15 +12,7 @@ package File_Manager is
    function To_Package_File
      (Package_Kind : Basic_Types.Package_Kind;
       Name         : String;
-      Version      : String := "") return String
-   is (Name
-       & '-'
-       & (if Version = "" then "" else Version & '-')
-       & Alr2appimage_Config.Alire_Host_Arch
-       & "."
-       & (case Package_Kind is
-             when Basic_Types.AppImage => "AppImage",
-             when Basic_Types.Deb => "deb"));
+      Version      : String := "") return String;
 
    function To_AppImage_File
      (Name         : String;

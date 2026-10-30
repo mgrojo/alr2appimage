@@ -1,12 +1,16 @@
 with Ada.Strings.Unbounded;
 
+with Basic_Types;
+
 package Runner is
 
    -- Create a temporary directory, install the application on it, and
    -- return the created application directory.
    --
    -- Install the Icon file and the Desktop_Filename if not empty.
-   function Run_Alr_Install (Icon, Desktop_Filename : String) return String;
+   function Run_Alr_Install
+     (Icon, Desktop_Filename : String; Package_Kind : Basic_Types.Package_Kind)
+      return String;
 
    type Getter_Tool is (Curl, Wget);
 

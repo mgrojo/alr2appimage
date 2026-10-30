@@ -126,7 +126,8 @@ begin
       declare
          App_Dir : constant String := Runner.Run_Alr_Install
           (Icon => Icon,
-           Desktop_Filename => Executable & ".desktop");
+           Desktop_Filename => Executable & ".desktop",
+           Package_Kind => Package_Kind);
          Package_File : constant String :=
            File_Manager.To_Package_File (Package_Kind, Name, Version);
       begin
@@ -157,6 +158,7 @@ begin
                                        Success => Success);
             when Basic_Types.Deb =>
 
+               -- Write the control file for the source package
                Deb_Package.Write_Control
                  (App_Dir        => App_Dir,
                   Name           => Name,
@@ -171,12 +173,28 @@ begin
                declare
                   Dependencies : Ada.Strings.Unbounded.Unbounded_String;
                begin
+                  --  Create the final package metadata before reading the
+                  --  shared-library dependencies. This ensures the build tree
+                  --  contains a real Debian package root when dpkg-shlibdeps
+                  --  inspects the binary.
+                  Deb_Package.Write_Control
+                    (App_Dir        => App_Dir,
+                     Name           => Name,
+                     Comment        => Alire_TOML.Read_Field ("description"),
+                     Exec           => Executable,
+                     Maintainer     =>
+                       Alire_TOML.Read_String_List ("maintainers") (1),
+                     Version        => Version,
+                     Tags           => Alire_TOML.Read_String_List ("tags"),
+                     Include_Source => False);
+
                   Runner.Run_Dpkg_Dependencies
                     (App_Dir      => App_Dir,
                      Executable   => Executable,
                      Success      => Success,
                      Dependencies => Dependencies);
 
+                  -- Write control file again with the dependencies added.
                   Deb_Package.Write_Control
                     (App_Dir        => App_Dir,
                      Name           => Name,
@@ -201,7 +219,17 @@ begin
             Report_Failure ("Running package tool failed. Aborting.");
             return;
          else
-            Ada.Directories.Delete_Tree (App_Dir);
+
+            -- Delete the temporary directory, which in the case of AppImage is
+            -- the whole AppDir, and in the case of Deb is the parent directory
+            -- of the AppDir, which contains the debian subdirectory.
+            case Package_Kind is
+               when Basic_Types.Deb =>
+                  Ada.Directories.Delete_Tree (Ada.Directories.Containing_Directory (App_Dir));
+               when Basic_Types.AppImage =>
+                  Ada.Directories.Delete_Tree (App_Dir);
+            end case;
+
             if Ada.Directories.Exists (Package_File) then
                Put_Line ("Success! Package is ready in: " & Package_File);
             else

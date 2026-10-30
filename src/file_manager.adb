@@ -1,3 +1,5 @@
+with Alr2appimage_Config;
+with Deb_Package;
 with Interfaces.C.Strings;
 
 package body File_Manager is
@@ -21,5 +23,35 @@ package body File_Manager is
 
       return Interfaces.C.Strings.Value (C_Result);
    end Create_Temporary_Directory;
+
+   function To_Package_File
+     (Package_Kind : Basic_Types.Package_Kind;
+      Name         : String;
+      Version      : String := "") return String
+   is
+      Version_Part : constant String :=
+        (if Version = "" then "" else Version & '-');
+   begin
+
+      case Package_Kind is
+         when Basic_Types.AppImage =>
+            return
+              Name
+              & '-'
+              & Version_Part
+              & Alr2appimage_Config.Alire_Host_Arch
+              & ".AppImage";
+
+         when Basic_Types.Deb      =>
+            return
+              Deb_Package.Debian_Name_Of (Name)
+              & '-'
+              & Version_Part
+              & Deb_Package.Debian_Architecture_Of
+                  (Alr2appimage_Config.Alire_Host_Arch)
+              & ".deb";
+
+      end case;
+   end To_Package_File;
 
 end File_Manager;
