@@ -71,6 +71,8 @@ jobs:
        - name: Release
          uses: softprops/action-gh-release@v2
          with:
-           files: alr2appimage*.AppImage alr2appimage*.deb
+           files: |
+             alr2appimage*.AppImage
+             alr2appimage*.deb
            prerelease: true
            tag_name: continuous

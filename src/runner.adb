@@ -59,11 +59,11 @@ package body Runner is
            (Source_Name => Filename,
             Target_Name =>
               To_Dir & "/" & Ada.Directories.Simple_Name (Filename));
+         Success := True;
       exception
-         when Ada.Directories.Name_Error =>
+         when others =>
             Success := False;
       end;
-      Success := True;
 
    end Run_Copy;
 
@@ -371,7 +371,10 @@ package body Runner is
       Dependencies : out Ada.Strings.Unbounded.Unbounded_String)
    is
 
-      Working_Dir : constant String := Ada.Directories.Containing_Directory (Ada.Directories.Full_Name (App_Dir));
+         Original_Dir : constant String := Ada.Directories.Current_Directory;
+         Working_Dir  : constant String :=
+            Ada.Directories.Containing_Directory
+               (Ada.Directories.Full_Name (App_Dir));
 
       Dependencies_Program : constant String := "dpkg-shlibdeps";
       Arg_String_1 : constant String := "-e";
@@ -383,54 +386,63 @@ package body Runner is
 
    begin
 
-      Ada.Directories.Set_Directory (Working_Dir);
+      Success := False;
+      Dependencies := Ada.Strings.Unbounded.Null_Unbounded_String;
 
-      Ada.Text_IO.Put_Line
-        ("Running: """
-         & Dependencies_Program
-         & " "
-         & Arg_String_1
-         & " "
-         & Arg_String_2
-         & '"'
-         & " in directory: "
-         & Working_Dir);
-
-      declare
-
-         Result : constant Spoon.Result :=
-            Spoon.Spawn
-               (Executable => Dependencies_Program,
-               Arguments  =>
-                  (1 => Arg_1'Unchecked_Access,
-                   2 => Arg_2'Unchecked_Access),
-               Kind       => Spoon.Name);
-         Dependencies_File : Ada.Text_IO.File_Type;
-         Unwanted_Prefix : constant String := "shlibs:Depends=";
       begin
-         Report_State (Result, Success);
+         Ada.Directories.Set_Directory (Working_Dir);
 
-         if Success then
-            --  Read the dependencies from the file "debian/substvars"
-            --  and remove the prefix "shlibs:Depends=".
-            --
-            Ada.Text_IO.Open
-              (File => Dependencies_File,
-               Name => "debian/substvars",
-               Mode => Ada.Text_IO.In_File);
+         Ada.Text_IO.Put_Line
+           ("Running: """
+            & Dependencies_Program
+            & " "
+            & Arg_String_1
+            & " "
+            & Arg_String_2
+            & '"'
+            & " in directory: "
+            & Working_Dir);
 
-            Dependencies :=
-              Ada.Strings.Unbounded.To_Unbounded_String
-                (Ada.Text_IO.Get_Line (File => Dependencies_File));
-            Dependencies :=
-              Ada.Strings.Unbounded.Unbounded_Slice
-                (Dependencies,
-                 Unwanted_Prefix'Length + 1,
-                 Ada.Strings.Unbounded.Length (Dependencies));
-            Ada.Text_IO.Close (Dependencies_File);
-            Ada.Directories.Set_Directory ("..");
-         end if;
+         declare
+
+            Result : constant Spoon.Result :=
+               Spoon.Spawn
+                  (Executable => Dependencies_Program,
+                  Arguments  =>
+                     (1 => Arg_1'Unchecked_Access,
+                      2 => Arg_2'Unchecked_Access),
+                  Kind       => Spoon.Name);
+            Dependencies_File : Ada.Text_IO.File_Type;
+            Unwanted_Prefix : constant String := "shlibs:Depends=";
+         begin
+            Report_State (Result, Success);
+
+            if Success then
+               --  Read the dependencies from the file "debian/substvars"
+               --  and remove the prefix "shlibs:Depends=".
+               --
+               Ada.Text_IO.Open
+                 (File => Dependencies_File,
+                  Name => "debian/substvars",
+                  Mode => Ada.Text_IO.In_File);
+
+               Dependencies :=
+                 Ada.Strings.Unbounded.To_Unbounded_String
+                   (Ada.Text_IO.Get_Line (File => Dependencies_File));
+               Dependencies :=
+                 Ada.Strings.Unbounded.Unbounded_Slice
+                   (Dependencies,
+                    Unwanted_Prefix'Length + 1,
+                    Ada.Strings.Unbounded.Length (Dependencies));
+               Ada.Text_IO.Close (Dependencies_File);
+            end if;
+         end;
+      exception
+         when others =>
+            Success := False;
       end;
+
+      Ada.Directories.Set_Directory (Original_Dir);
    end Run_Dpkg_Dependencies;
 
 
