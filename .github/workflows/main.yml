@@ -65,9 +65,9 @@ jobs:
        - name: Build
          run: alr --non-interactive build
        - name: Build AppImage
-         run: bin/alr2appimage -o AppImage --use-version
+         run: bin/alr2appimage -o AppImage --use-version --terminal
        - name: Build Debian package
-         run: bin/alr2appimage -o Deb
+         run: bin/alr2appimage -o Deb --terminal
        - name: Release
          uses: softprops/action-gh-release@v2
          with:
