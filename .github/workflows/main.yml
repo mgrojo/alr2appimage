@@ -28,7 +28,7 @@ jobs:
            distrib: community
            target: native
        - name: alire-project/setup-alire
-         uses: alire-project/setup-alire@v2
+         uses: alire-project/setup-alire@latest
        - name: Update apt
          if: runner.os == 'Linux'
          run: sudo apt-get update
@@ -55,9 +55,7 @@ jobs:
            distrib: community
            target: native
        - name: alire-project/setup-alire
-         uses: alire-project/setup-alire@v2
-         with:
-            branch: "master"
+         uses: alire-project/setup-alire@latest
        - name: Update apt
          run: sudo apt-get update
        - name: Update
@@ -65,11 +63,11 @@ jobs:
        - name: Build
          run: alr --non-interactive build
        - name: Build AppImage
-         run: bin/alr2appimage -o AppImage --use-version
+         run: bin/alr2appimage -o AppImage --use-version --terminal
        - name: Build Debian package
-         run: bin/alr2appimage -o deb
+         run: bin/alr2appimage -o deb --terminal
        - name: Build RPM package
-         run: bin/alr2appimage -o rpm
+         run: bin/alr2appimage -o rpm --terminal
        - name: Release
          uses: softprops/action-gh-release@v2
          with:
