@@ -14,7 +14,7 @@
 # alr2appimage
 
 `alr2appimage` is a tool to automatically create an
-[AppImage](https://appimage.org/) executable or Debian package from an Alire crate.
+[AppImage](https://appimage.org/) executable, Debian package or RPM package from an Alire crate.
 
 > [!NOTE]
 > `alr2appimage` is an independent project; it is not
@@ -54,6 +54,10 @@ This tool is installed by the `dpkg-dev` package:
 ```sh
 sudo apt install dpkg-dev
 ```
+
+For the RPM package, the `rpmbuild` utility is used. In Debian based system,
+this tool is installed with the `rpm` package; in Fedora base systems, it is in
+the `rpm-build` package.
 
 `alr2appimage` will generate a valid [Destop Entry](https://specifications.freedesktop.org/desktop-entry-spec/latest/)
 for the package. The following metadata will be read from your
@@ -116,16 +120,16 @@ Makes an AppImage or Debian package from your Alire crate.
 
   -h, --help       Display this help text.
   -V, --version    Display the version of this utility.
-  -o, --out-package Specify the kind of package to create: AppImage (default) or Deb.
+   -o, --out-package Specify the kind of package to create: AppImage (default), Deb or Rpm.
   -t, --terminal   Set the Terminal flag of the desktop entry to true, i.e. the application is for the terminal or requires to be run from a terminal.
   -i, --icon       Specify the icon file for the package
   -e, --executable Specify the executable for the package (without path)
   -u, --use-version 
                    Use the crate version specified in the alire.toml for the AppImage.
-                   The default for Debian package.
+                   The default for Debian and RPM packages.
 ```
 
-Run inside an Alire crate to create a default AppImage or Debian package of your
+Run inside an Alire crate to create a default AppImage, Debian or RPM package of your
 application.  With the corresponding arguments, you can override the
 executable, provide your own 128x128 icon and override the default value
 (false) for the terminal field.
@@ -142,7 +146,6 @@ useful for the users:
   project, you can also define a template for your desktop file, and
   only the fields that you want will be included from the `alire.toml`
   or initialized by this utility.
-- RPM support.
 
 # Building
 Can be built and installed after cloning the repository using Alire.

@@ -10,6 +10,7 @@ with Basic_Types;
 with Deb_Package;
 with Desktop_File;
 with File_Manager;
+with Rpm_Package;
 with Runner;
 with String_Vectors;
 
@@ -46,7 +47,7 @@ begin
    AP.Add_Option (Package_Kind_Options.Make_Option (Basic_Types.AppImage),
                   "out-package", 'o',
                   Usage =>
-                   "Specify the kind of package to create (AppImage or Deb).");
+                   "Specify the kind of package to create (AppImage, Deb or RPM).");
 
    AP.Add_Option (Make_Boolean_Option (False), "terminal", 't',
                   Usage => "Set the Terminal flag of the AppImage to true, "
@@ -86,6 +87,8 @@ begin
 
    Make_Package :
    declare
+      use type Basic_Types.Package_Kind;
+
       Executable_List : constant String_Vectors.Vector
         := Alire_TOML.Read_String_List ("executables");
       Icon : constant String := AP.String_Value ("icon");
@@ -93,7 +96,9 @@ begin
         Package_Kind_Options.Value (AP, "out-package");
       Name : constant String := Alire_TOML.Read_Field ("name");
       Version : constant String :=
-        (if Package_Kind in Basic_Types.Deb or else AP.Boolean_Value ("use-version")
+        (if Package_Kind = Basic_Types.Deb
+         or else Package_Kind = Basic_Types.Rpm
+         or else AP.Boolean_Value ("use-version")
          then Alire_TOML.Read_Field ("version")
          else "");
 
@@ -219,6 +224,26 @@ begin
                      Success      => Success);
                end;
 
+            when Basic_Types.Rpm =>
+               declare
+                  Spec_File : constant String :=
+                    Rpm_Package.Write_Spec
+                      (App_Dir => App_Dir,
+                       Name    => Name,
+                       Version => Version,
+                       Summary => Alire_TOML.Read_Field ("description"),
+                       License =>
+                         Alire_TOML.Read_Field ("licenses", Default => "Unknown"),
+                       Exec    => Executable,
+                       Icon    => Ada.Directories.Simple_Name (Icon));
+               begin
+                  Runner.Run_Rpm_Build
+                    (App_Dir   => App_Dir,
+                     Spec_File => Spec_File,
+                     Filename  => Package_File,
+                     Success   => Success);
+               end;
+
          end case;
 
 
@@ -231,7 +256,7 @@ begin
             -- the whole AppDir, and in the case of Deb is the parent directory
             -- of the AppDir, which contains the debian subdirectory.
             case Package_Kind is
-               when Basic_Types.Deb =>
+               when Basic_Types.Deb | Basic_Types.Rpm =>
                   Ada.Directories.Delete_Tree (Ada.Directories.Containing_Directory (App_Dir));
                when Basic_Types.AppImage =>
                   Ada.Directories.Delete_Tree (App_Dir);

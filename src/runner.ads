@@ -40,4 +40,9 @@ package Runner is
    procedure Run_Dpkg_Build
      (App_Dir, Filename : String; Success : out Boolean);
 
+   -- Set Success to True when OK, and to False when the operation fails.
+   --
+   procedure Run_Rpm_Build
+     (App_Dir, Spec_File, Filename : String; Success : out Boolean);
+
 end Runner;
