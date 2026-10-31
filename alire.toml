@@ -50,3 +50,6 @@ resources = "~0.1.0"
 
 [build-switches]
 "*".style_checks = ["-gnaty3abBCrfklM99nptx"]
+
+[configuration]
+generate_c = false
