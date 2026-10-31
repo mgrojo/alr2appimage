@@ -45,7 +45,12 @@ package body Runner is
    end Report_State;
 
    procedure Run_Copy
-     (Filename : String; To_Dir : String; Success : out Boolean) is
+     (Filename : String; To_Dir : String; New_Filename : String := ""; Success : out Boolean)
+   is
+      Target_Filename : constant String :=
+        (if New_Filename = ""
+         then Ada.Directories.Simple_Name (Filename)
+         else New_Filename);
    begin
 
       Ada.Text_IO.Put_Line ("Copying " & Filename & " to " & To_Dir & "...");
@@ -58,7 +63,7 @@ package body Runner is
          Ada.Directories.Copy_File
            (Source_Name => Filename,
             Target_Name =>
-              To_Dir & "/" & Ada.Directories.Simple_Name (Filename));
+              To_Dir & "/" & Target_Filename);
          Success := True;
       exception
          when others =>
@@ -104,17 +109,17 @@ package body Runner is
    end Run_Gprinstall;
 
    function Run_Alr_Install
-     (Icon, Desktop_Filename : String; Package_Kind : Basic_Types.Package_Kind)
+     (Name, Icon, Desktop_Filename : String; Package_Kind : Basic_Types.Package_Kind)
       return String
    is
 
       Temporary_Dir : constant String :=
         File_Manager.Create_Temporary_Directory (App_Dir_Template);
 
-      App_Dir : constant String :=
-        (if Package_Kind in Basic_Types.Deb
-         then Temporary_Dir & "/package"
-         else Temporary_Dir);
+         App_Dir : constant String :=
+            (if Package_Kind in Basic_Types.Deb | Basic_Types.Rpm
+             then Temporary_Dir & "/AppDir"
+             else Temporary_Dir);
 
       Install_Prefix : constant String :=
         App_Dir & Installation_Subdir;
@@ -147,9 +152,10 @@ package body Runner is
 
       if Success and then Icon /= "" then
          Run_Copy
-           (Filename => Icon,
-            To_Dir   => Install_Prefix & Icon_Path,
-            Success  => Success);
+           (Filename     => Icon,
+            To_Dir       => Install_Prefix & Icon_Path,
+            New_Filename => Name & "." & Ada.Directories.Extension (Icon),
+            Success      => Success);
       end if;
 
       if Success and then Desktop_Filename /= "" then
@@ -488,6 +494,133 @@ package body Runner is
       end;
 
    end Run_Dpkg_Build;
+
+   procedure Run_Rpm_Build
+     (App_Dir, Spec_File, Filename : String; Success : out Boolean)
+   is
+      Original_Dir : constant String := Ada.Directories.Current_Directory;
+      Working_Dir  : constant String :=
+        Ada.Directories.Containing_Directory
+          (Ada.Directories.Full_Name (App_Dir));
+         --  Keep RPM build sources outside %{buildroot}. rpmbuild cleans
+         --  buildroot before %install, so using App_Dir as both source and
+         --  destination would remove the files to package.
+      Build_Dir : constant String := Working_Dir & "/BUILD";
+
+      Rpmbuild_Program : constant String := "rpmbuild";
+
+      Arg_String_1 : constant String := "--buildroot";
+      Arg_String_2 : constant String := Ada.Directories.Full_Name (App_Dir);
+      Arg_String_3 : constant String := "-bb";
+      Arg_String_4 : constant String := "SPECS/" & Ada.Directories.Simple_Name (Spec_File);
+      Arg_String_5 : constant String := "--define";
+      Arg_String_6 : constant String := "_rpmdir " & Original_Dir;
+      Arg_String_7 : constant String := "--define";
+      Arg_String_8 : constant String := "_build_name_fmt " & Filename;
+      Arg_String_9 : constant String := "--define";
+      --  Point rpmbuild to the staged tree where %install can read AppDir/*.
+      Arg_String_10 : constant String := "_builddir " & Build_Dir;
+      Arg_String_11 : constant String := "--define";
+      Arg_String_12 : constant String := "_unpackaged_files_terminate_build 0";
+
+      Arg_1 : aliased Spoon.Argument := Spoon.To_Argument (Arg_String_1);
+      Arg_2 : aliased Spoon.Argument := Spoon.To_Argument (Arg_String_2);
+      Arg_3 : aliased Spoon.Argument := Spoon.To_Argument (Arg_String_3);
+      Arg_4 : aliased Spoon.Argument := Spoon.To_Argument (Arg_String_4);
+      Arg_5 : aliased Spoon.Argument := Spoon.To_Argument (Arg_String_5);
+      Arg_6 : aliased Spoon.Argument := Spoon.To_Argument (Arg_String_6);
+      Arg_7 : aliased Spoon.Argument := Spoon.To_Argument (Arg_String_7);
+      Arg_8 : aliased Spoon.Argument := Spoon.To_Argument (Arg_String_8);
+      Arg_9 : aliased Spoon.Argument := Spoon.To_Argument (Arg_String_9);
+      Arg_10 : aliased Spoon.Argument := Spoon.To_Argument (Arg_String_10);
+      Arg_11 : aliased Spoon.Argument := Spoon.To_Argument (Arg_String_11);
+      Arg_12 : aliased Spoon.Argument := Spoon.To_Argument (Arg_String_12);
+   begin
+      begin
+         Ada.Directories.Create_Path (Build_Dir);
+
+         declare
+            --  Stage App_Dir under Build_Dir so the spec's "%install"
+            --  can copy from AppDir/* into %{buildroot}.
+            Copy_Arg_1 : aliased Spoon.Argument := Spoon.To_Argument ("-a");
+            Copy_Arg_2 : aliased Spoon.Argument := Spoon.To_Argument (App_Dir);
+            Copy_Arg_3 : aliased Spoon.Argument := Spoon.To_Argument (Build_Dir);
+            Copy_Result : constant Spoon.Result :=
+              Spoon.Spawn
+                (Executable => "cp",
+                 Arguments  =>
+                   (Copy_Arg_1'Unchecked_Access,
+                    Copy_Arg_2'Unchecked_Access,
+                    Copy_Arg_3'Unchecked_Access),
+                 Kind       => Spoon.Name);
+         begin
+            Report_State (Copy_Result, Success);
+
+            if not Success then
+               return;
+            end if;
+         end;
+
+         Ada.Directories.Set_Directory (Working_Dir);
+
+         Ada.Text_IO.Put_Line
+           ("Running: "
+            & Rpmbuild_Program
+            & " "
+            & Arg_String_1
+            & " "
+            & Arg_String_2
+            & " "
+            & Arg_String_3
+            & " "
+            & Arg_String_4
+            & " "
+            & Arg_String_5
+            & " "
+            & Arg_String_6
+            & " "
+            & Arg_String_7
+            & " "
+            & Arg_String_8
+            & " "
+            & Arg_String_9
+            & " "
+            & Arg_String_10
+            & " "
+            & Arg_String_11
+            & " "
+            & Arg_String_12
+            & " in directory: "
+            & Working_Dir);
+
+         declare
+            Result : constant Spoon.Result :=
+              Spoon.Spawn
+                (Executable => Rpmbuild_Program,
+                 Arguments  =>
+                   (Arg_1'Unchecked_Access,
+                    Arg_2'Unchecked_Access,
+                    Arg_3'Unchecked_Access,
+                    Arg_4'Unchecked_Access,
+                    Arg_5'Unchecked_Access,
+                    Arg_6'Unchecked_Access,
+                    Arg_7'Unchecked_Access,
+                    Arg_8'Unchecked_Access,
+                    Arg_9'Unchecked_Access,
+                    Arg_10'Unchecked_Access,
+                    Arg_11'Unchecked_Access,
+                    Arg_12'Unchecked_Access),
+                 Kind       => Spoon.Name);
+         begin
+            Report_State (Result, Success);
+         end;
+      exception
+         when others =>
+            Success := False;
+      end;
+
+      Ada.Directories.Set_Directory (Original_Dir);
+   end Run_Rpm_Build;
 
 
 end Runner;

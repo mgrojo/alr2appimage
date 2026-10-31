@@ -1,4 +1,5 @@
 with Basic_Types;
+with String_Vectors;
 
 package File_Manager is
 
@@ -18,5 +19,10 @@ package File_Manager is
      (Name         : String;
       Version      : String := "") return String
    is (To_Package_File (Basic_Types.AppImage, Name, Version));
+
+   -- Walk a Directory tree and return the full path of each file found in Files.
+   procedure Walk_Directory
+     (Directory : in String;
+      Files     : in out String_Vectors.Vector);
 
 end File_Manager;
