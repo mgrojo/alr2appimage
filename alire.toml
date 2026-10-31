@@ -1,5 +1,5 @@
 name = "alr2appimage"
-description = "Tool to create an AppImage or Debian package from an Alire crate"
+description = "Tool to create an AppImage, Debian or RPM package from an Alire crate"
 version = "1.1.0-dev"
 website = "https://github.com/mgrojo/alr2appimage"
 long-description = """
@@ -16,7 +16,7 @@ alr install
 Or it will run `gprinstall` inside `alr exec`, if the former fails (Alire 1.x).
 
 If you simply run the tool inside an Alire crate, it will read the
-metadata from your `alire.toml` file and create a default AppImage or Debian
+metadata from your `alire.toml` file and create a default AppImage, Debian or RPM
 package from it.
 
 NOTE: `alr2appimage` is an independent project; it is not
@@ -25,7 +25,7 @@ affiliated to, nor supported by, the Alire, AppImage or Debian projects.
 """
 licenses = "GPL-3.0-only"
 
-tags = ["utility", "appimage", "deb", "alire", "linux", "packaging"]
+tags = ["utility", "appimage", "deb", "rpm", "alire", "linux", "packaging"]
 
 authors = ["Manuel Gomez"]
 maintainers = ["Manuel Gomez <mgrojo@gmail.com>"]

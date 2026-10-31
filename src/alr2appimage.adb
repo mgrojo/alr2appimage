@@ -1,6 +1,8 @@
 with Ada.Command_Line;
 with Ada.Containers;
 with Ada.Directories;
+with Ada.Strings.Equal_Case_Insensitive;
+with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 with Ada.Text_IO; use Ada.Text_IO;
 
@@ -15,7 +17,6 @@ with Runner;
 with String_Vectors;
 
 with Parse_Args;
-with Package_Kind_Options;
 
 with Resources;
 
@@ -34,8 +35,202 @@ procedure Alr2AppImage is
 
    package My_Resources is new Resources (Alr2appimage_Config.Crate_Name);
 
-   AP : Argument_Parser;
-   Success : Boolean;
+   AP      : Argument_Parser;
+
+   procedure Make_Package (Package_Kind : Basic_Types.Package_Kind) is
+
+      use type Basic_Types.Package_Kind;
+
+      Success : Boolean := False;
+      Executable_List : constant String_Vectors.Vector :=
+        Alire_TOML.Read_String_List ("executables");
+      Icon            : constant String := AP.String_Value ("icon");
+      Name            : constant String := Alire_TOML.Read_Field ("name");
+      Version         : constant String :=
+        (if Package_Kind = Basic_Types.Deb
+           or else Package_Kind = Basic_Types.Rpm
+           or else AP.Boolean_Value ("use-version")
+         then Alire_TOML.Read_Field ("version")
+         else "");
+
+      function Get_Executable return String is
+      begin
+         if AP.String_Value ("executable") /= "" then
+            return AP.String_Value ("executable");
+         elsif Ada.Containers."=" (Executable_List.Length, 0) then
+            Report_Failure
+              ("Error: the field 'executables' in 'alire.toml' is empty"
+               & " and no executable was provided on the command line.");
+            raise Abort_Error;
+         else
+            return Executable_List.Element (Positive'First);
+         end if;
+      end Get_Executable;
+
+      Executable : constant String := Get_Executable;
+   begin
+
+      Desktop_File.Write
+        (Name     => Name,
+         Comment  => Alire_TOML.Read_Field ("description"),
+         Exec     => Executable,
+         Icon     => Name,
+         Terminal => AP.Boolean_Value ("terminal"),
+         Tags     => Alire_TOML.Read_String_List ("tags"));
+
+      Deploy : declare
+         App_Dir      : constant String :=
+           Runner.Run_Alr_Install
+             (Name             => Name,
+              Icon             => Icon,
+              Desktop_Filename => Executable & ".desktop",
+              Package_Kind     => Package_Kind);
+         Package_File : constant String :=
+           File_Manager.To_Package_File (Package_Kind, Name, Version);
+      begin
+
+         if App_Dir = "" then
+            Report_Failure ("Running ""alr install"" Failed. Aborting.");
+            return;
+         end if;
+
+         case Package_Kind is
+            when Basic_Types.AppImage =>
+               Runner.Run_Get_Linuxdeploy
+                 (Use_Tool => Runner.Curl, Success => Success);
+
+               if not Success then
+                  Runner.Run_Get_Linuxdeploy
+                    (Use_Tool => Runner.Wget, Success => Success);
+
+                  if not Success then
+                     Report_Failure
+                       ("Downloading linuxdeploy failed. Please, install wget or curl.");
+                     return;
+                  end if;
+               end if;
+
+               Runner.Run_Linuxdeploy
+                 (App_Dir    => App_Dir,
+                  Executable => Executable,
+                  Icon_File  => Ada.Directories.Simple_Name (Icon),
+                  Version    => Version,
+                  Success    => Success);
+
+            when Basic_Types.Deb      =>
+
+               -- Write the control file for the source package
+               Deb_Package.Write_Control
+                 (App_Dir        => App_Dir,
+                  Name           => Name,
+                  Comment        => Alire_TOML.Read_Field ("description"),
+                  Maintainer     =>
+                    Alire_TOML.Read_String_List ("maintainers") (1),
+                  Version        => Version,
+                  Tags           => Alire_TOML.Read_String_List ("tags"),
+                  Include_Source => True);
+
+               declare
+                  Dependencies : Ada.Strings.Unbounded.Unbounded_String;
+               begin
+                  --  Create the final package metadata before reading the
+                  --  shared-library dependencies. This ensures the build tree
+                  --  contains a real Debian package root when dpkg-shlibdeps
+                  --  inspects the binary.
+                  Deb_Package.Write_Control
+                    (App_Dir        => App_Dir,
+                     Name           => Name,
+                     Comment        => Alire_TOML.Read_Field ("description"),
+                     Maintainer     =>
+                       Alire_TOML.Read_String_List ("maintainers") (1),
+                     Version        => Version,
+                     Tags           => Alire_TOML.Read_String_List ("tags"),
+                     Include_Source => False);
+
+                  Runner.Run_Dpkg_Dependencies
+                    (App_Dir      => App_Dir,
+                     Executable   => Executable,
+                     Success      => Success,
+                     Dependencies => Dependencies);
+
+                  if not Success then
+                     Report_Failure
+                       ("Running dpkg-shlibdeps failed. "
+                        & "Please, install `dpkg-dev` package. Aborting.");
+                     return;
+                  end if;
+
+                  -- Write control file again with the dependencies added.
+                  Deb_Package.Write_Control
+                    (App_Dir        => App_Dir,
+                     Name           => Name,
+                     Comment        => Alire_TOML.Read_Field ("description"),
+                     Maintainer     =>
+                       Alire_TOML.Read_String_List ("maintainers") (1),
+                     Version        => Version,
+                     Tags           => Alire_TOML.Read_String_List ("tags"),
+                     Dependencies   => Dependencies,
+                     Include_Source => False);
+                  Runner.Run_Dpkg_Build
+                    (App_Dir  => App_Dir,
+                     Filename => Package_File,
+                     Success  => Success);
+               end;
+
+            when Basic_Types.Rpm      =>
+               declare
+                  Spec_File : constant String :=
+                    Rpm_Package.Write_Spec
+                      (App_Dir => App_Dir,
+                       Name    => Name,
+                       Version => Version,
+                       Summary => Alire_TOML.Read_Field ("description"),
+                       License =>
+                         Alire_TOML.Read_Field
+                           ("licenses", Default => "Unknown"));
+               begin
+                  Runner.Run_Rpm_Build
+                    (App_Dir   => App_Dir,
+                     Spec_File => Spec_File,
+                     Filename  => Package_File,
+                     Success   => Success);
+               end;
+
+         end case;
+
+         if not Success then
+            Report_Failure ("Running package tool failed. Aborting.");
+            return;
+         else
+
+            if not AP.Boolean_Value ("debug") then
+               -- Delete the temporary directory, which in the case of AppImage is
+               -- the whole AppDir, and in the case of Deb is the parent directory
+               -- of the AppDir, which contains the debian subdirectory.
+               case Package_Kind is
+                  when Basic_Types.Deb | Basic_Types.Rpm =>
+                     Ada.Directories.Delete_Tree
+                       (Ada.Directories.Containing_Directory (App_Dir));
+
+                  when Basic_Types.AppImage              =>
+                     Ada.Directories.Delete_Tree (App_Dir);
+               end case;
+            else
+               Put_Line
+                 ("Debug mode: keeping temporary directory: " & App_Dir);
+            end if;
+
+            if Ada.Directories.Exists (Package_File) then
+               Put_Line ("Success! Package is ready in: " & Package_File);
+            else
+               Report_Failure
+                 ("Error: " & Package_File & " file not found. Aborting.");
+            end if;
+         end if;
+
+      end Deploy;
+   end Make_Package;
+
 begin
 
    AP.Add_Option (Make_Boolean_Option (False), "help", 'h',
@@ -44,10 +239,12 @@ begin
    AP.Add_Option (Make_Boolean_Option (False), "version", 'V',
                   Usage => "Display the version of this utility.");
 
-   AP.Add_Option (Package_Kind_Options.Make_Option (Basic_Types.AppImage),
-                  "out-package", 'o',
-                  Usage =>
-                   "Specify the kind of package to create (AppImage, Deb or RPM).");
+   AP.Add_Option
+     (Make_String_Option ("AppImage"),
+      "out-package",
+      'o',
+      Usage =>
+        "Specify the kinds of packages to create (comma-separated list of AppImage, Deb, RPM).");
 
    AP.Add_Option (Make_Boolean_Option (False), "terminal", 't',
                   Usage => "Set the Terminal flag of the desktop file to true, "
@@ -92,197 +289,47 @@ begin
 
    Alire_TOML.Load_Alire;
 
-   Make_Package :
+   Make_Each_Package :
    declare
-      use type Basic_Types.Package_Kind;
-
-      Executable_List : constant String_Vectors.Vector
-        := Alire_TOML.Read_String_List ("executables");
-      Icon : constant String := AP.String_Value ("icon");
-      Package_Kind : constant Basic_Types.Package_Kind :=
-        Package_Kind_Options.Value (AP, "out-package");
-      Name : constant String := Alire_TOML.Read_Field ("name");
-      Version : constant String :=
-        (if Package_Kind = Basic_Types.Deb
-         or else Package_Kind = Basic_Types.Rpm
-         or else AP.Boolean_Value ("use-version")
-         then Alire_TOML.Read_Field ("version")
-         else "");
-
-      function Get_Executable return String
-      is
-      begin
-         if AP.String_Value ("executable") /= "" then
-            return AP.String_Value ("executable");
-         elsif Ada.Containers."=" (Executable_List.Length, 0) then
-            Report_Failure ("Error: the field 'executables' in 'alire.toml' is empty"
-                              & " and no executable was provided on the command line.");
-            raise Abort_Error;
-         else
-            return Executable_List.Element (Positive'First);
-         end if;
-      end Get_Executable;
-
-      Executable : constant String := Get_Executable;
+      Package_Kinds : constant String :=
+        AP.String_Value ("out-package");
+      Package_Kind_List : String_Vectors.Vector;
+      Enabled_Package_Kinds : array (Basic_Types.Package_Kind) of Boolean := (others => False);
+      Valid_Value : Boolean := False;
    begin
 
-      Desktop_File.Write
-        (Name => Name,
-         Comment => Alire_TOML.Read_Field ("description"),
-         Exec => Executable,
-         Icon => Name,
-         Terminal => AP.Boolean_Value ("terminal"),
-         Tags => Alire_TOML.Read_String_List ("tags"));
+      String_Vectors.Split (Package_Kinds, ",", Package_Kind_List);
 
-      Deploy :
-      declare
-         App_Dir : constant String := Runner.Run_Alr_Install
-          (Name => Name,
-           Icon => Icon,
-           Desktop_Filename => Executable & ".desktop",
-           Package_Kind => Package_Kind);
-         Package_File : constant String :=
-           File_Manager.To_Package_File (Package_Kind, Name, Version);
-      begin
+      for Package_Kind of Package_Kind_List loop
+         Valid_Value := False;
 
-         if App_Dir = "" then
-            Report_Failure ("Running ""alr install"" Failed. Aborting.");
+         for Each_Kind in Basic_Types.Package_Kind loop
+            if Ada.Strings.Equal_Case_Insensitive
+             (Left  => Ada.Strings.Fixed.Trim (Package_Kind, Ada.Strings.Both),
+              Right => Each_Kind'Image)
+            then
+               Enabled_Package_Kinds (Each_Kind) := True;
+               Valid_Value := True;
+            end if;
+         end loop;
+
+         if not Valid_Value then
+            Report_Failure
+              ("Error: invalid value for --out-package option: "
+               & Package_Kind);
             return;
          end if;
+      end loop;
 
-         case Package_Kind is
-            when Basic_Types.AppImage =>
-               Runner.Run_Get_Linuxdeploy (Use_Tool => Runner.Curl, Success => Success);
-
-               if not Success then
-                  Runner.Run_Get_Linuxdeploy (Use_Tool => Runner.Wget, Success => Success);
-
-                  if not Success then
-                     Report_Failure
-                      ("Downloading linuxdeploy failed. Please, install wget or curl.");
-                     return;
-                  end if;
-               end if;
-
-               Runner.Run_Linuxdeploy (App_Dir => App_Dir,
-                                       Executable => Executable,
-                                       Icon_File => Ada.Directories.Simple_Name (Icon),
-                                       Version => Version,
-                                       Success => Success);
-            when Basic_Types.Deb =>
-
-               -- Write the control file for the source package
-               Deb_Package.Write_Control
-                 (App_Dir        => App_Dir,
-                  Name           => Name,
-                  Comment        => Alire_TOML.Read_Field ("description"),
-                  Exec           => Executable,
-                  Maintainer     =>
-                    Alire_TOML.Read_String_List ("maintainers") (1),
-                  Version        => Version,
-                  Tags           => Alire_TOML.Read_String_List ("tags"),
-                  Include_Source => True);
-
-               declare
-                  Dependencies : Ada.Strings.Unbounded.Unbounded_String;
-               begin
-                  --  Create the final package metadata before reading the
-                  --  shared-library dependencies. This ensures the build tree
-                  --  contains a real Debian package root when dpkg-shlibdeps
-                  --  inspects the binary.
-                  Deb_Package.Write_Control
-                    (App_Dir        => App_Dir,
-                     Name           => Name,
-                     Comment        => Alire_TOML.Read_Field ("description"),
-                     Exec           => Executable,
-                     Maintainer     =>
-                       Alire_TOML.Read_String_List ("maintainers") (1),
-                     Version        => Version,
-                     Tags           => Alire_TOML.Read_String_List ("tags"),
-                     Include_Source => False);
-
-                  Runner.Run_Dpkg_Dependencies
-                    (App_Dir      => App_Dir,
-                     Executable   => Executable,
-                     Success      => Success,
-                     Dependencies => Dependencies);
-
-                  if not Success then
-                     Report_Failure
-                       ("Running dpkg-shlibdeps failed. "
-                        & "Please, install `dpkg-dev` package. Aborting.");
-                     return;
-                  end if;
-
-                  -- Write control file again with the dependencies added.
-                  Deb_Package.Write_Control
-                    (App_Dir        => App_Dir,
-                     Name           => Name,
-                     Comment        => Alire_TOML.Read_Field ("description"),
-                     Exec           => Executable,
-                     Maintainer     =>
-                       Alire_TOML.Read_String_List ("maintainers") (1),
-                     Version        => Version,
-                     Tags           => Alire_TOML.Read_String_List ("tags"),
-                     Dependencies   => Dependencies,
-                     Include_Source => False);
-                  Runner.Run_Dpkg_Build
-                    (App_Dir      => App_Dir,
-                     Filename     => Package_File,
-                     Success      => Success);
-               end;
-
-            when Basic_Types.Rpm =>
-               declare
-                  Spec_File : constant String :=
-                    Rpm_Package.Write_Spec
-                      (App_Dir => App_Dir,
-                       Name    => Name,
-                       Version => Version,
-                       Summary => Alire_TOML.Read_Field ("description"),
-                       License =>
-                         Alire_TOML.Read_Field ("licenses", Default => "Unknown"));
-               begin
-                  Runner.Run_Rpm_Build
-                    (App_Dir   => App_Dir,
-                     Spec_File => Spec_File,
-                     Filename  => Package_File,
-                     Success   => Success);
-               end;
-
-         end case;
-
-
-         if not Success then
-            Report_Failure ("Running package tool failed. Aborting.");
-            return;
-         else
-
-            if not AP.Boolean_Value ("debug") then
-               -- Delete the temporary directory, which in the case of AppImage is
-               -- the whole AppDir, and in the case of Deb is the parent directory
-               -- of the AppDir, which contains the debian subdirectory.
-               case Package_Kind is
-                  when Basic_Types.Deb | Basic_Types.Rpm =>
-                     Ada.Directories.Delete_Tree
-                       (Ada.Directories.Containing_Directory (App_Dir));
-
-                  when Basic_Types.AppImage              =>
-                     Ada.Directories.Delete_Tree (App_Dir);
-               end case;
-            else
-               Put_Line ("Debug mode: keeping temporary directory: " & App_Dir);
-            end if;
-
-            if Ada.Directories.Exists (Package_File) then
-               Put_Line ("Success! Package is ready in: " & Package_File);
-            else
-               Report_Failure ("Error: " & Package_File &
-                                    " file not found. Aborting.");
-            end if;
+      for Package_Kind in Enabled_Package_Kinds'Range loop
+         if Enabled_Package_Kinds (Package_Kind) then
+            Make_Package (Package_Kind);
          end if;
+      end loop;
 
-      end Deploy;
-   end Make_Package;
+   end Make_Each_Package;
 
+exception
+   when Alire_TOML.Load_Error =>
+      Report_Failure ("Error: could not load alire.toml file. Aborting.");
 end Alr2AppImage;

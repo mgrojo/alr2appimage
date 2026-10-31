@@ -9,4 +9,10 @@ package String_Vectors is
    subtype Vector is Container.Vector;
    Empty_Vector : Vector renames Container.Empty_Vector;
 
+   -- Split a string into a vector of strings, using the given delimiter.
+   procedure Split
+     (Source : String;
+      Delimiter : String;
+      Result : out Vector);
+
 end String_Vectors;

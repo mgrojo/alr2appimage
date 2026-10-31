@@ -121,7 +121,7 @@ Makes AppImage, Deb and RPM packages from your Alire crate.
   -h, --help       Display this help text.
   -V, --version    Display the version of this utility.
   -o, --out-package 
-                   Specify the kind of package to create (AppImage, Deb or RPM).
+                   Specify the kinds of packages to create (comma-separated list of AppImage, Deb, RPM).
   -t, --terminal   Set the Terminal flag of the desktop file to true, i.e. the application is for the terminal or requires to be run from a terminal.
   -i, --icon       Specify the icon file for the package
   -e, --executable Specify the executable for the package (without path)
@@ -151,5 +151,5 @@ useful for the users:
 # Building
 Can be built and installed after cloning the repository using Alire.
 
-You can also download an AppImage from the releases section or use
+You can also download a binary package from the releases section or use
 `alr install alr2appimage` to install the utility from the Alire index.

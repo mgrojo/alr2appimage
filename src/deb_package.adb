@@ -105,7 +105,6 @@ package body Deb_Package is
      (App_Dir : String;
       Name : String;
       Comment : String;
-      Exec : String;
       Maintainer : String;
       Version : String;
       Tags : String_Vectors.Vector;

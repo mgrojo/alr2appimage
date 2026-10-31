@@ -1,4 +1,4 @@
-# Build using Alire.
+# Build using Alire and upload binary packages.
 name: Build
 
 on:
@@ -62,12 +62,8 @@ jobs:
          run: alr index --update-all
        - name: Build
          run: alr --non-interactive build
-       - name: Build AppImage
-         run: bin/alr2appimage -o AppImage --use-version --terminal
-       - name: Build Debian package
-         run: bin/alr2appimage -o deb --terminal
-       - name: Build RPM package
-         run: bin/alr2appimage -o rpm --terminal
+       - name: Build AppImage, Debian and RPM packages
+         run: bin/alr2appimage -o AppImage,deb,rpm --use-version --terminal
        - name: Release
          uses: softprops/action-gh-release@v2
          with:
