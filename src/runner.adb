@@ -45,7 +45,12 @@ package body Runner is
    end Report_State;
 
    procedure Run_Copy
-     (Filename : String; To_Dir : String; Success : out Boolean) is
+     (Filename : String; To_Dir : String; New_Filename : String := ""; Success : out Boolean)
+   is
+      Target_Filename : constant String :=
+        (if New_Filename = ""
+         then Ada.Directories.Simple_Name (Filename)
+         else New_Filename);
    begin
 
       Ada.Text_IO.Put_Line ("Copying " & Filename & " to " & To_Dir & "...");
@@ -58,7 +63,7 @@ package body Runner is
          Ada.Directories.Copy_File
            (Source_Name => Filename,
             Target_Name =>
-              To_Dir & "/" & Ada.Directories.Simple_Name (Filename));
+              To_Dir & "/" & Target_Filename);
          Success := True;
       exception
          when others =>
@@ -104,7 +109,7 @@ package body Runner is
    end Run_Gprinstall;
 
    function Run_Alr_Install
-     (Icon, Desktop_Filename : String; Package_Kind : Basic_Types.Package_Kind)
+     (Name, Icon, Desktop_Filename : String; Package_Kind : Basic_Types.Package_Kind)
       return String
    is
 
@@ -147,9 +152,10 @@ package body Runner is
 
       if Success and then Icon /= "" then
          Run_Copy
-           (Filename => Icon,
-            To_Dir   => Install_Prefix & Icon_Path,
-            Success  => Success);
+           (Filename     => Icon,
+            To_Dir       => Install_Prefix & Icon_Path,
+            New_Filename => Name & "." & Ada.Directories.Extension (Icon),
+            Success      => Success);
       end if;
 
       if Success and then Desktop_Filename /= "" then

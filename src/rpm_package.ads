@@ -18,8 +18,6 @@ package Rpm_Package is
       Name     : String;
       Version  : String;
       Summary  : String;
-      License  : String;
-      Exec     : String;
-      Icon     : String) return String;
+      License  : String) return String;
 
 end Rpm_Package;

@@ -116,17 +116,18 @@ under Linux and the executable is located under `<prefix>/bin/`.
 # Usage
 ```
 Usage: alr2appimage [OPTIONS]...
-Makes an AppImage or Debian package from your Alire crate.
+Makes AppImage, Deb and RPM packages from your Alire crate.
 
   -h, --help       Display this help text.
   -V, --version    Display the version of this utility.
-   -o, --out-package Specify the kind of package to create: AppImage (default), Deb or Rpm.
-  -t, --terminal   Set the Terminal flag of the desktop entry to true, i.e. the application is for the terminal or requires to be run from a terminal.
+  -o, --out-package 
+                   Specify the kind of package to create (AppImage, Deb or RPM).
+  -t, --terminal   Set the Terminal flag of the desktop file to true, i.e. the application is for the terminal or requires to be run from a terminal.
   -i, --icon       Specify the icon file for the package
   -e, --executable Specify the executable for the package (without path)
   -u, --use-version 
-                   Use the crate version specified in the alire.toml for the AppImage.
-                   The default for Debian and RPM packages.
+                   Use the crate version specified in the alire.toml for the AppImage
+  -d, --debug      Debug mode. Keep the temporary directory after the package is created.
 ```
 
 Run inside an Alire crate to create a default AppImage, Debian or RPM package of your

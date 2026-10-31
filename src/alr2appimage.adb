@@ -50,23 +50,30 @@ begin
                    "Specify the kind of package to create (AppImage, Deb or RPM).");
 
    AP.Add_Option (Make_Boolean_Option (False), "terminal", 't',
-                  Usage => "Set the Terminal flag of the AppImage to true, "
+                  Usage => "Set the Terminal flag of the desktop file to true, "
                     & "i.e. the application is for the terminal or requires "
                     & "to be run from a terminal.");
 
    AP.Add_Option (Make_String_Option (My_Resources.Resource_Path & "alr2appimage.png"),
                   "icon", 'i',
-                  Usage => "Specify the icon file for the AppImage");
+                  Usage => "Specify the icon file for the package");
 
    AP.Add_Option (Make_String_Option (""),
                   "executable", 'e',
-                  Usage => "Specify the executable for the AppImage (without path)");
+                  Usage => "Specify the executable for the package (without path)");
 
    AP.Add_Option (Make_Boolean_Option (False),
                   "use-version", 'u',
                   Usage => "Use the crate version specified in the alire.toml for the AppImage");
 
-   AP.Set_Prologue ("Makes an AppImage from your Alire crate.");
+   AP.Add_Option
+     (Make_Boolean_Option (False),
+      "debug",
+      'd',
+      Usage =>
+        "Debug mode. Keep the temporary directory after the package is created.");
+
+   AP.Set_Prologue ("Makes AppImage, Deb and RPM packages from your Alire crate.");
 
    AP.Parse_Command_Line;
 
@@ -123,14 +130,15 @@ begin
         (Name => Name,
          Comment => Alire_TOML.Read_Field ("description"),
          Exec => Executable,
-         Icon => Ada.Directories.Base_Name (Icon),
+         Icon => Name,
          Terminal => AP.Boolean_Value ("terminal"),
          Tags => Alire_TOML.Read_String_List ("tags"));
 
       Deploy :
       declare
          App_Dir : constant String := Runner.Run_Alr_Install
-          (Icon => Icon,
+          (Name => Name,
+           Icon => Icon,
            Desktop_Filename => Executable & ".desktop",
            Package_Kind => Package_Kind);
          Package_File : constant String :=
@@ -233,9 +241,7 @@ begin
                        Version => Version,
                        Summary => Alire_TOML.Read_Field ("description"),
                        License =>
-                         Alire_TOML.Read_Field ("licenses", Default => "Unknown"),
-                       Exec    => Executable,
-                       Icon    => Ada.Directories.Simple_Name (Icon));
+                         Alire_TOML.Read_Field ("licenses", Default => "Unknown"));
                begin
                   Runner.Run_Rpm_Build
                     (App_Dir   => App_Dir,
@@ -252,15 +258,21 @@ begin
             return;
          else
 
-            -- Delete the temporary directory, which in the case of AppImage is
-            -- the whole AppDir, and in the case of Deb is the parent directory
-            -- of the AppDir, which contains the debian subdirectory.
-            case Package_Kind is
-               when Basic_Types.Deb | Basic_Types.Rpm =>
-                  Ada.Directories.Delete_Tree (Ada.Directories.Containing_Directory (App_Dir));
-               when Basic_Types.AppImage =>
-                  Ada.Directories.Delete_Tree (App_Dir);
-            end case;
+            if not AP.Boolean_Value ("debug") then
+               -- Delete the temporary directory, which in the case of AppImage is
+               -- the whole AppDir, and in the case of Deb is the parent directory
+               -- of the AppDir, which contains the debian subdirectory.
+               case Package_Kind is
+                  when Basic_Types.Deb | Basic_Types.Rpm =>
+                     Ada.Directories.Delete_Tree
+                       (Ada.Directories.Containing_Directory (App_Dir));
+
+                  when Basic_Types.AppImage              =>
+                     Ada.Directories.Delete_Tree (App_Dir);
+               end case;
+            else
+               Put_Line ("Debug mode: keeping temporary directory: " & App_Dir);
+            end if;
 
             if Ada.Directories.Exists (Package_File) then
                Put_Line ("Success! Package is ready in: " & Package_File);

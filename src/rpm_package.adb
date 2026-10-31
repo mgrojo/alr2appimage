@@ -1,8 +1,9 @@
 with Ada.Directories;
 with Ada.Strings.Fixed;
 with Ada.Text_IO; use Ada.Text_IO;
-
 with Alr2appimage_Config;
+with File_Manager;
+with String_Vectors;
 
 package body Rpm_Package is
 
@@ -48,9 +49,7 @@ package body Rpm_Package is
       Name     : String;
       Version  : String;
       Summary  : String;
-      License  : String;
-      Exec     : String;
-      Icon     : String) return String
+      License  : String) return String
    is
       Working_Dir : constant String :=
         Ada.Directories.Containing_Directory
@@ -87,11 +86,15 @@ package body Rpm_Package is
       New_Line (Spec_File);
 
       Put_Line (Spec_File, "%files");
-      Put_Line (Spec_File, "/usr/bin/" & Exec);
-      Put_Line (Spec_File, "/usr/share/applications/" & Exec & ".desktop");
-      Put_Line
-        (Spec_File,
-         "/usr/share/icons/hicolor/128x128/apps/" & Icon);
+      declare
+         Files : String_Vectors.Vector;
+      begin
+         File_Manager.Walk_Directory (App_Dir, Files);
+         for File of Files loop
+            Put_Line (Spec_File, "/" &
+               File (App_Dir'Length + 2 .. File'Last));
+         end loop;
+      end;
 
       Close (Spec_File);
 

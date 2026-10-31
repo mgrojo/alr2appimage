@@ -1,3 +1,4 @@
+with Ada.Directories;
 with Alr2appimage_Config;
 with Deb_Package;
 with Interfaces.C.Strings;
@@ -66,5 +67,32 @@ package body File_Manager is
 
       end case;
    end To_Package_File;
+
+   procedure Walk_Directory
+      (Directory : in String;
+       Files     : in out String_Vectors.Vector)
+   is
+      use type Ada.Directories.File_Kind;
+      Pattern : constant String := "";
+      Search  : Ada.Directories.Search_Type;
+      Dir_Ent : Ada.Directories.Directory_Entry_Type;
+   begin
+      Ada.Directories.Start_Search (Search, Directory, Pattern);
+
+      while Ada.Directories.More_Entries (Search) loop
+         Ada.Directories.Get_Next_Entry (Search, Dir_Ent);
+         if Ada.Directories.Kind (Dir_Ent) = Ada.Directories.Directory then
+            if Ada.Directories.Simple_Name (Dir_Ent) /= "." and then
+               Ada.Directories.Simple_Name (Dir_Ent) /= ".."
+            then
+               Walk_Directory (Ada.Directories.Full_Name (Dir_Ent), Files);
+            end if;
+         else
+            Files.Append (Ada.Directories.Full_Name (Dir_Ent));
+         end if;
+      end loop;
+
+      Ada.Directories.End_Search (Search);
+   end Walk_Directory;
 
 end File_Manager;
