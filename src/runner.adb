@@ -4,48 +4,65 @@ with Ada.Text_IO;
 
 with File_Manager;
 
-with Spoon;
+with Shell;
 
 package body Runner is
 
    App_Dir_Template : constant String := "alr2appimage-AppDir-XXXXXX";
 
    Installation_Subdir : constant String := "/usr";
-   Icon_Path : constant String := "/share/icons/hicolor/128x128/apps/";
+   Icon_Path           : constant String :=
+     "/share/icons/hicolor/128x128/apps/";
 
-   Linuxdeploy_Program : constant String := File_Manager.To_AppImage_File ("linuxdeploy");
-   Linuxdeploy_URL : constant String :=
+   Linuxdeploy_Program : constant String :=
+     File_Manager.To_AppImage_File ("linuxdeploy");
+   Linuxdeploy_URL     : constant String :=
      "https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/"
      & Linuxdeploy_Program;
 
-   Linuxdeploy_URL_Argument : aliased Spoon.Argument
-     := Spoon.To_Argument (Linuxdeploy_URL);
+   function To_Argument (Value : String) return Shell.Unbounded_String is
+   begin
+      return Shell."+" (Value);
+   end To_Argument;
 
-   procedure Report_State (Result : Spoon.Result; Success : out Boolean) is
-      use all type Spoon.Exit_State;
-      use type Spoon.Exit_Status;
+   procedure Report_State (Process : in out Shell.Process; Success : out Boolean) is
+      Process_State : constant Shell.Process_State := Shell.Status (Process);
    begin
 
       Success := False;
 
-      case Result.State is
-         when Exited =>
-            if Result.Exit_Status = Spoon.Success then
-               Ada.Text_IO.Put_Line ("OK");
-               Success := True;
-            else
-               Ada.Text_IO.Put_Line ("with status" & Result.Exit_Status'Image);
-            end if;
-         when Crashed | Terminated =>
-            Ada.Text_IO.Put_Line ("with signal" & Result.Signal'Image);
-         when Error =>
-            Ada.Text_IO.Put_Line ("with error" & Result.Error_Code'Image);
+      case Process_State is
+         when Shell.Normal_Exit =>
+            Ada.Text_IO.Put_Line ("OK");
+            Success := True;
+
+         when Shell.Not_Started | Shell.Running | Shell.Paused |
+           Shell.Failed_Exit =>
+            Ada.Text_IO.Put_Line ("with status" & Process_State'Image);
+
+         when Shell.Interrupted | Shell.Killed =>
+            Ada.Text_IO.Put_Line ("with signal" & Process_State'Image);
       end case;
 
    end Report_State;
 
+   procedure Run_Command
+     (Executable : String;
+      Arguments  : Shell.String_Array;
+      Success    : out Boolean)
+   is
+      Process : Shell.Process := Shell.Start (Program => Executable,
+                                              Arguments => Arguments);
+   begin
+      Shell.Wait_On (Process);
+      Report_State (Process, Success);
+   end Run_Command;
+
    procedure Run_Copy
-     (Filename : String; To_Dir : String; New_Filename : String := ""; Success : out Boolean)
+     (Filename     : String;
+      To_Dir       : String;
+      New_Filename : String := "";
+      Success      : out Boolean)
    is
       Target_Filename : constant String :=
         (if New_Filename = ""
@@ -62,8 +79,7 @@ package body Runner is
       begin
          Ada.Directories.Copy_File
            (Source_Name => Filename,
-            Target_Name =>
-              To_Dir & "/" & Target_Filename);
+            Target_Name => To_Dir & "/" & Target_Filename);
          Success := True;
       exception
          when others =>
@@ -75,75 +91,60 @@ package body Runner is
    --  Run gprinstall inside "alr exec". This is the fallback when running under
    --  a version of Alire without the "install" subcommand (1.x versions).
    --
-   procedure Run_Gprinstall (Install_Prefix : String;
-                             Success : out Boolean)
-   is
-
-      Arg_1 : aliased Spoon.Argument := Spoon.To_Argument ("exec");
-      Arg_2 : aliased Spoon.Argument := Spoon.To_Argument ("-P");
-      Arg_3 : aliased Spoon.Argument := Spoon.To_Argument ("--");
-      Arg_4 : aliased Spoon.Argument := Spoon.To_Argument ("gprinstall");
-      Arg_5 : aliased Spoon.Argument
-        := Spoon.To_Argument ("--prefix=" & Install_Prefix);
-      Arg_6 : aliased Spoon.Argument := Spoon.To_Argument ("--create-missing-dirs");
-      Arg_7 : aliased Spoon.Argument := Spoon.To_Argument ("--mode=usage");
-      Arg_8 : aliased Spoon.Argument := Spoon.To_Argument ("-f");
-
-      Result : constant Spoon.Result :=
-        Spoon.Spawn (Executable => "alr",
-                     Arguments => (Arg_1'Unchecked_Access,
-                                   Arg_2'Unchecked_Access,
-                                   Arg_3'Unchecked_Access,
-                                   Arg_4'Unchecked_Access,
-                                   Arg_5'Unchecked_Access,
-                                   Arg_6'Unchecked_Access,
-                                   Arg_7'Unchecked_Access,
-                                   Arg_8'Unchecked_Access),
-                     Kind => Spoon.Name);
+   procedure Run_Gprinstall (Install_Prefix : String; Success : out Boolean) is
+      Args : constant Shell.String_Array :=
+        (1 => To_Argument ("exec"),
+         2 => To_Argument ("-P"),
+         3 => To_Argument ("--"),
+         4 => To_Argument ("gprinstall"),
+         5 => To_Argument ("--prefix=" & Install_Prefix),
+         6 => To_Argument ("--create-missing-dirs"),
+         7 => To_Argument ("--mode=usage"),
+         8 => To_Argument ("-f"));
    begin
 
-      Ada.Text_IO.Put_Line ("Finished: fallback command: ""alr exec ... gprinstall ...""");
+      Run_Command ("alr", Args, Success);
 
-      Report_State (Result, Success);
 
+      Ada.Text_IO.Put_Line
+        ("Finished: fallback command: ""alr exec ... gprinstall ...""");
    end Run_Gprinstall;
 
    function Run_Alr_Install
-     (Name, Icon, Desktop_Filename : String; Package_Kind : Basic_Types.Package_Kind)
-      return String
+     (Name, Icon, Desktop_Filename : String;
+      Package_Kind                 : Basic_Types.Package_Kind) return String
    is
 
       Temporary_Dir : constant String :=
         File_Manager.Create_Temporary_Directory (App_Dir_Template);
 
-         App_Dir : constant String :=
-            (if Package_Kind in Basic_Types.Deb | Basic_Types.Rpm
-             then Temporary_Dir & "/AppDir"
-             else Temporary_Dir);
+      App_Dir : constant String :=
+        (if Package_Kind in Basic_Types.Deb | Basic_Types.Rpm
+         then Temporary_Dir & "/AppDir"
+         else Temporary_Dir);
 
-      Install_Prefix : constant String :=
-        App_Dir & Installation_Subdir;
+      Install_Prefix : constant String := App_Dir & Installation_Subdir;
 
-      Arg_1 : aliased Spoon.Argument := Spoon.To_Argument ("--force");
-      Arg_2 : aliased Spoon.Argument := Spoon.To_Argument ("install");
-      Arg_3 : aliased Spoon.Argument :=
-        Spoon.To_Argument ("--prefix=" & Install_Prefix);
+      -- AppImage installation requires the AppDir to be executable by all users.
+      New_Mode_Args : constant Shell.String_Array :=
+        (1 => To_Argument ("a+r,a+x"),
+         2 => To_Argument (Temporary_Dir));
+
+      Alr_Args : constant Shell.String_Array :=
+        (1 => To_Argument ("--force"),
+         2 => To_Argument ("install"),
+         3 => To_Argument ("--prefix=" & Install_Prefix));
 
       Success : Boolean := False;
-
-      Result : constant Spoon.Result :=
-        Spoon.Spawn
-          (Executable => "alr",
-           Arguments  =>
-             (Arg_1'Unchecked_Access,
-              Arg_2'Unchecked_Access,
-              Arg_3'Unchecked_Access),
-           Kind       => Spoon.Name);
    begin
 
+      Run_Command ("chmod", New_Mode_Args, Success);
+      if not Success then
+         Ada.Text_IO.Put_Line ("Failed to set permissions on " & Temporary_Dir);
+         return "";
+      end if;
+      Run_Command ("alr", Alr_Args, Success);
       Ada.Text_IO.Put_Line ("Finished: ""alr install""");
-
-      Report_State (Result, Success);
 
       if not Success then
          --  "alr install" failed. Let's try with the fallback command.
@@ -177,9 +178,8 @@ package body Runner is
    -- Run_Get_Linuxdeploy --
    -------------------------
 
-   procedure Run_Get_Linuxdeploy (Use_Tool : Getter_Tool;
-                                  Success : out Boolean)
-   is
+   procedure Run_Get_Linuxdeploy
+     (Use_Tool : Getter_Tool; Success : out Boolean) is
    begin
 
       if Ada.Directories.Exists (Linuxdeploy_Program) then
@@ -191,37 +191,24 @@ package body Runner is
       case Use_Tool is
          when Curl =>
             declare
-               Arg_1 : aliased Spoon.Argument
-                 := Spoon.To_Argument ("--remote-name");
-               Arg_2 : aliased Spoon.Argument
-                 := Spoon.To_Argument ("--location");
-               Result : constant Spoon.Result :=
-                 Spoon.Spawn (Executable => "curl",
-                              Arguments => (Arg_1'Unchecked_Access,
-                                            Arg_2'Unchecked_Access,
-                                            Linuxdeploy_URL_Argument'Access),
-                              Kind => Spoon.Name);
+               Args : constant Shell.String_Array :=
+                 (1 => To_Argument ("--remote-name"),
+                  2 => To_Argument ("--location"),
+                  3 => To_Argument (Linuxdeploy_URL));
             begin
+               Run_Command ("curl", Args, Success);
                Ada.Text_IO.Put_Line ("Finished: curl...");
-               Report_State (Result, Success);
             end;
 
          when Wget =>
-
             declare
-               Arg_1 : aliased Spoon.Argument := Spoon.To_Argument ("-nv");
-               Arg_2 : aliased Spoon.Argument := Spoon.To_Argument ("-c");
-
-               Result : constant Spoon.Result :=
-                 Spoon.Spawn (Executable => "wget",
-                              Arguments => (Arg_1'Unchecked_Access,
-                                            Arg_2'Unchecked_Access,
-                                            Linuxdeploy_URL_Argument'Access),
-                              Kind => Spoon.Name);
+               Args : constant Shell.String_Array :=
+                 (1 => To_Argument ("-nv"),
+                  2 => To_Argument ("-c"),
+                  3 => To_Argument (Linuxdeploy_URL));
             begin
-
+               Run_Command ("wget", Args, Success);
                Ada.Text_IO.Put_Line ("Finished: wget...");
-               Report_State (Result, Success);
             end;
 
       end case;
@@ -229,25 +216,19 @@ package body Runner is
    end Run_Get_Linuxdeploy;
 
    procedure Run_Change_Mode (Success : out Boolean) is
-
-      Arg_1 : aliased Spoon.Argument := Spoon.To_Argument ("+x");
-      Arg_2 : aliased Spoon.Argument
-        := Spoon.To_Argument (Linuxdeploy_Program);
-
-      Result : constant Spoon.Result :=
-        Spoon.Spawn (Executable => "chmod",
-                     Arguments => (Arg_1'Unchecked_Access,
-                                   Arg_2'Unchecked_Access),
-                     Kind => Spoon.Name);
+      Args : constant Shell.String_Array :=
+        (1 => To_Argument ("+x"),
+         2 => To_Argument (Linuxdeploy_Program));
    begin
-      Ada.Text_IO.Put_Line ("Finished: ""chmod +x "
-                              & Linuxdeploy_Program & """");
-      Report_State (Result, Success);
+      Run_Command ("chmod", Args, Success);
+      Ada.Text_IO.Put_Line
+        ("Finished: ""chmod +x " & Linuxdeploy_Program & """");
    end Run_Change_Mode;
 
    -- Find the first file with Executable name in the current directory
    --
-   function Find_Executable (Executable : String; From_Dir : String) return String
+   function Find_Executable
+     (Executable : String; From_Dir : String) return String
    is
 
       use Ada.Directories;
@@ -255,42 +236,47 @@ package body Runner is
       File_Not_Found : exception;
       Found_Filename : Ada.Strings.Unbounded.Unbounded_String;
 
-      procedure Find_First_File (Current_Dir : String; Deepness : in out Natural) is
+      procedure Find_First_File
+        (Current_Dir : String; Deepness : in out Natural)
+      is
          Maximum_Deepness : constant Natural := 5;
-         Dir_Entry : Directory_Entry_Type;
-         Dir_Search : Search_Type;
+         Dir_Entry        : Directory_Entry_Type;
+         Dir_Search       : Search_Type;
 
       begin
          if Deepness = Maximum_Deepness then
             return;
          end if;
          Deepness := Deepness + 1;
-         Start_Search (Search => Dir_Search,
-                       Directory => Current_Dir,
-                       Pattern => "",
-                       Filter => (Ordinary_File => True,
-                                  Directory     => True,
-                                  others        => False));
+         Start_Search
+           (Search    => Dir_Search,
+            Directory => Current_Dir,
+            Pattern   => "",
+            Filter    =>
+              (Ordinary_File => True, Directory => True, others => False));
 
          while More_Entries (Dir_Search) loop
             Get_Next_Entry (Dir_Search, Dir_Entry);
 
             case Kind (Dir_Entry) is
-               when Directory =>
+               when Directory                    =>
                   -- Recursive call avoiding the link to current directory (".")
                   if Simple_Name (Dir_Entry) /= "."
-                    and then
-                    Simple_Name (Dir_Entry) /= ".."
+                    and then Simple_Name (Dir_Entry) /= ".."
                   then
                      Find_First_File
-                       (Current_Dir => Full_Name (Dir_Entry), Deepness => Deepness);
+                       (Current_Dir => Full_Name (Dir_Entry),
+                        Deepness    => Deepness);
                   end if;
-               when Ordinary_File =>
+
+               when Ordinary_File                =>
                   if Simple_Name (Dir_Entry) = Executable then
                      Found_Filename :=
-                       Ada.Strings.Unbounded.To_Unbounded_String (Full_Name (Dir_Entry));
+                       Ada.Strings.Unbounded.To_Unbounded_String
+                         (Full_Name (Dir_Entry));
                      exit;
                   end if;
+
                when Ada.Directories.Special_File =>
                   null;
             end case;
@@ -310,33 +296,36 @@ package body Runner is
       Find_First_File (From_Dir, Deepness);
 
       if Ada.Strings.Unbounded.Length (Found_Filename) = 0 then
-         raise File_Not_Found with Executable & " not found in crate directory.";
+         raise File_Not_Found
+           with Executable & " not found in crate directory.";
       end if;
 
       return Ada.Strings.Unbounded.To_String (Found_Filename);
    end Find_Executable;
 
-   procedure Run_Linuxdeploy (App_Dir, Executable, Icon_File, Version : String;
-                              Success : out Boolean) is
+   procedure Run_Linuxdeploy
+     (App_Dir, Executable, Icon_File, Version : String; Success : out Boolean)
+   is
 
       Install_Prefix : constant String := App_Dir & Installation_Subdir;
 
-      Arg_String_1 : constant String := "--executable="
-        & Find_Executable (Executable, From_Dir => Ada.Directories.Current_Directory);
-      Arg_String_2 : constant String := "--desktop-file="
-        & Executable & ".desktop";
-      Arg_String_3 : constant String := "--icon-file="
-        & Install_Prefix & Icon_Path & Icon_File;
-      Arg_String_4 : constant String := "--appdir="
-        & App_Dir;
+      Arg_String_1 : constant String :=
+        "--executable="
+        & Find_Executable
+            (Executable, From_Dir => Ada.Directories.Current_Directory);
+      Arg_String_2 : constant String :=
+        "--desktop-file=" & Executable & ".desktop";
+      Arg_String_3 : constant String :=
+        "--icon-file=" & Install_Prefix & Icon_Path & Icon_File;
+      Arg_String_4 : constant String := "--appdir=" & App_Dir;
       Arg_String_5 : constant String := "--output=appimage";
 
-      Arg_1 : aliased Spoon.Argument := Spoon.To_Argument (Arg_String_1);
-      Arg_2 : aliased Spoon.Argument := Spoon.To_Argument (Arg_String_2);
-      Arg_3 : aliased Spoon.Argument := Spoon.To_Argument (Arg_String_3);
-      Arg_4 : aliased Spoon.Argument := Spoon.To_Argument (Arg_String_4);
-      Arg_5 : aliased Spoon.Argument := Spoon.To_Argument (Arg_String_5);
-
+      Args : constant Shell.String_Array :=
+        (1 => To_Argument (Arg_String_1),
+         2 => To_Argument (Arg_String_2),
+         3 => To_Argument (Arg_String_3),
+         4 => To_Argument (Arg_String_4),
+         5 => To_Argument (Arg_String_5));
    begin
 
       if Version /= "" then
@@ -349,47 +338,54 @@ package body Runner is
          return;
       end if;
 
-      Ada.Text_IO.Put_Line ("Running: ""./" & Linuxdeploy_Program & " "
-                              & Arg_String_1 & " "
-                              & Arg_String_2 & " "
-                              & Arg_String_3 & " "
-                              & Arg_String_4 & " "
-                              & Arg_String_5 & '"');
+      Ada.Text_IO.Put_Line
+        ("Running: ""./"
+         & Linuxdeploy_Program
+         & " "
+         & Arg_String_1
+         & " "
+         & Arg_String_2
+         & " "
+         & Arg_String_3
+         & " "
+         & Arg_String_4
+         & " "
+         & Arg_String_5
+         & '"');
 
       declare
-         Result : constant Spoon.Result :=
-           Spoon.Spawn (Executable => "./" & Linuxdeploy_Program,
-                        Arguments => (Arg_1'Unchecked_Access,
-                                      Arg_2'Unchecked_Access,
-                                      Arg_3'Unchecked_Access,
-                                      Arg_4'Unchecked_Access,
-                                      Arg_5'Unchecked_Access),
-                        Kind => Spoon.File_Path);
+         Process : Shell.Process :=
+           Shell.Start (Program => "./" & Linuxdeploy_Program,
+                       Arguments => Args);
       begin
-         Report_State (Result, Success);
+         Shell.Wait_On (Process);
+         Report_State (Process, Success);
       end;
 
    end Run_Linuxdeploy;
 
    procedure Run_Dpkg_Dependencies
      (App_Dir, Executable : String;
-      Success : out Boolean;
-      Dependencies : out Ada.Strings.Unbounded.Unbounded_String)
+      Success             : out Boolean;
+      Dependencies        : out Ada.Strings.Unbounded.Unbounded_String)
    is
 
-         Original_Dir : constant String := Ada.Directories.Current_Directory;
-         Working_Dir  : constant String :=
-            Ada.Directories.Containing_Directory
-               (Ada.Directories.Full_Name (App_Dir));
+      Original_Dir : constant String := Ada.Directories.Current_Directory;
+      Working_Dir  : constant String :=
+        Ada.Directories.Containing_Directory
+          (Ada.Directories.Full_Name (App_Dir));
 
       Dependencies_Program : constant String := "dpkg-shlibdeps";
-      Arg_String_1 : constant String := "-e";
-      Arg_String_2 : constant String := Ada.Directories.Simple_Name (App_Dir)
-         & Installation_Subdir & "/bin/" & Executable;
+      Arg_String_1         : constant String := "-e";
+      Arg_String_2         : constant String :=
+        Ada.Directories.Simple_Name (App_Dir)
+        & Installation_Subdir
+        & "/bin/"
+        & Executable;
 
-      Arg_1 : aliased Spoon.Argument := Spoon.To_Argument (Arg_String_1);
-      Arg_2 : aliased Spoon.Argument := Spoon.To_Argument (Arg_String_2);
-
+      Args : constant Shell.String_Array :=
+        (1 => To_Argument (Arg_String_1),
+         2 => To_Argument (Arg_String_2));
    begin
 
       Success := False;
@@ -410,18 +406,14 @@ package body Runner is
             & Working_Dir);
 
          declare
-
-            Result : constant Spoon.Result :=
-               Spoon.Spawn
-                  (Executable => Dependencies_Program,
-                  Arguments  =>
-                     (1 => Arg_1'Unchecked_Access,
-                      2 => Arg_2'Unchecked_Access),
-                  Kind       => Spoon.Name);
+            Process           : Shell.Process :=
+              Shell.Start (Program => Dependencies_Program,
+                          Arguments => Args);
             Dependencies_File : Ada.Text_IO.File_Type;
-            Unwanted_Prefix : constant String := "shlibs:Depends=";
+            Unwanted_Prefix   : constant String := "shlibs:Depends=";
          begin
-            Report_State (Result, Success);
+            Shell.Wait_On (Process);
+            Report_State (Process, Success);
 
             if Success then
                --  Read the dependencies from the file "debian/substvars"
@@ -451,10 +443,7 @@ package body Runner is
       Ada.Directories.Set_Directory (Original_Dir);
    end Run_Dpkg_Dependencies;
 
-
-   procedure Run_Dpkg_Build
-     (App_Dir, Filename : String;
-      Success : out Boolean)
+   procedure Run_Dpkg_Build (App_Dir, Filename : String; Success : out Boolean)
    is
 
       Dpkg_Program : constant String := "dpkg-deb";
@@ -463,10 +452,10 @@ package body Runner is
       Arg_String_2 : String renames App_Dir;
       Arg_String_3 : String renames Filename;
 
-      Arg_1 : aliased Spoon.Argument := Spoon.To_Argument (Arg_String_1);
-      Arg_2 : aliased Spoon.Argument := Spoon.To_Argument (Arg_String_2);
-      Arg_3 : aliased Spoon.Argument := Spoon.To_Argument (Arg_String_3);
-
+      Args : constant Shell.String_Array :=
+        (1 => To_Argument (Arg_String_1),
+         2 => To_Argument (Arg_String_2),
+         3 => To_Argument (Arg_String_3));
    begin
 
       Ada.Text_IO.Put_Line
@@ -481,16 +470,12 @@ package body Runner is
          & '"');
 
       declare
-         Result : constant Spoon.Result :=
-           Spoon.Spawn
-             (Executable => Dpkg_Program,
-              Arguments  =>
-                (Arg_1'Unchecked_Access,
-                 Arg_2'Unchecked_Access,
-                 Arg_3'Unchecked_Access),
-              Kind       => Spoon.Name);
+         Process : Shell.Process :=
+           Shell.Start (Program => Dpkg_Program,
+                       Arguments => Args);
       begin
-         Report_State (Result, Success);
+         Shell.Wait_On (Process);
+         Report_State (Process, Success);
       end;
 
    end Run_Dpkg_Build;
@@ -502,39 +487,41 @@ package body Runner is
       Working_Dir  : constant String :=
         Ada.Directories.Containing_Directory
           (Ada.Directories.Full_Name (App_Dir));
-         --  Keep RPM build sources outside %{buildroot}. rpmbuild cleans
-         --  buildroot before %install, so using App_Dir as both source and
-         --  destination would remove the files to package.
-      Build_Dir : constant String := Working_Dir & "/BUILD";
+      --  Keep RPM build sources outside %{buildroot}. rpmbuild cleans
+      --  buildroot before %install, so using App_Dir as both source and
+      --  destination would remove the files to package.
+      Build_Dir    : constant String := Working_Dir & "/BUILD";
 
       Rpmbuild_Program : constant String := "rpmbuild";
 
-      Arg_String_1 : constant String := "--buildroot";
-      Arg_String_2 : constant String := Ada.Directories.Full_Name (App_Dir);
-      Arg_String_3 : constant String := "-bb";
-      Arg_String_4 : constant String := "SPECS/" & Ada.Directories.Simple_Name (Spec_File);
-      Arg_String_5 : constant String := "--define";
-      Arg_String_6 : constant String := "_rpmdir " & Original_Dir;
-      Arg_String_7 : constant String := "--define";
-      Arg_String_8 : constant String := "_build_name_fmt " & Filename;
-      Arg_String_9 : constant String := "--define";
+      Arg_String_1  : constant String := "--buildroot";
+      Arg_String_2  : constant String := Ada.Directories.Full_Name (App_Dir);
+      Arg_String_3  : constant String := "-bb";
+      Arg_String_4  : constant String :=
+        "SPECS/" & Ada.Directories.Simple_Name (Spec_File);
+      Arg_String_5  : constant String := "--define";
+      Arg_String_6  : constant String := "_rpmdir " & Original_Dir;
+      Arg_String_7  : constant String := "--define";
+      Arg_String_8  : constant String := "_build_name_fmt " & Filename;
+      Arg_String_9  : constant String := "--define";
       --  Point rpmbuild to the staged tree where %install can read AppDir/*.
       Arg_String_10 : constant String := "_builddir " & Build_Dir;
       Arg_String_11 : constant String := "--define";
       Arg_String_12 : constant String := "_unpackaged_files_terminate_build 0";
 
-      Arg_1 : aliased Spoon.Argument := Spoon.To_Argument (Arg_String_1);
-      Arg_2 : aliased Spoon.Argument := Spoon.To_Argument (Arg_String_2);
-      Arg_3 : aliased Spoon.Argument := Spoon.To_Argument (Arg_String_3);
-      Arg_4 : aliased Spoon.Argument := Spoon.To_Argument (Arg_String_4);
-      Arg_5 : aliased Spoon.Argument := Spoon.To_Argument (Arg_String_5);
-      Arg_6 : aliased Spoon.Argument := Spoon.To_Argument (Arg_String_6);
-      Arg_7 : aliased Spoon.Argument := Spoon.To_Argument (Arg_String_7);
-      Arg_8 : aliased Spoon.Argument := Spoon.To_Argument (Arg_String_8);
-      Arg_9 : aliased Spoon.Argument := Spoon.To_Argument (Arg_String_9);
-      Arg_10 : aliased Spoon.Argument := Spoon.To_Argument (Arg_String_10);
-      Arg_11 : aliased Spoon.Argument := Spoon.To_Argument (Arg_String_11);
-      Arg_12 : aliased Spoon.Argument := Spoon.To_Argument (Arg_String_12);
+      Args : constant Shell.String_Array :=
+        (1 => To_Argument (Arg_String_1),
+         2 => To_Argument (Arg_String_2),
+         3 => To_Argument (Arg_String_3),
+         4 => To_Argument (Arg_String_4),
+         5 => To_Argument (Arg_String_5),
+         6 => To_Argument (Arg_String_6),
+         7 => To_Argument (Arg_String_7),
+         8 => To_Argument (Arg_String_8),
+         9 => To_Argument (Arg_String_9),
+         10 => To_Argument (Arg_String_10),
+         11 => To_Argument (Arg_String_11),
+         12 => To_Argument (Arg_String_12));
    begin
       begin
          Ada.Directories.Create_Path (Build_Dir);
@@ -542,19 +529,16 @@ package body Runner is
          declare
             --  Stage App_Dir under Build_Dir so the spec's "%install"
             --  can copy from AppDir/* into %{buildroot}.
-            Copy_Arg_1 : aliased Spoon.Argument := Spoon.To_Argument ("-a");
-            Copy_Arg_2 : aliased Spoon.Argument := Spoon.To_Argument (App_Dir);
-            Copy_Arg_3 : aliased Spoon.Argument := Spoon.To_Argument (Build_Dir);
-            Copy_Result : constant Spoon.Result :=
-              Spoon.Spawn
-                (Executable => "cp",
-                 Arguments  =>
-                   (Copy_Arg_1'Unchecked_Access,
-                    Copy_Arg_2'Unchecked_Access,
-                    Copy_Arg_3'Unchecked_Access),
-                 Kind       => Spoon.Name);
+            Copy_Args : constant Shell.String_Array :=
+              (1 => To_Argument ("-a"),
+               2 => To_Argument (App_Dir),
+               3 => To_Argument (Build_Dir));
+            Copy_Process : Shell.Process :=
+              Shell.Start (Program => "cp",
+                           Arguments => Copy_Args);
          begin
-            Report_State (Copy_Result, Success);
+            Shell.Wait_On (Copy_Process);
+            Report_State (Copy_Process, Success);
 
             if not Success then
                return;
@@ -594,25 +578,12 @@ package body Runner is
             & Working_Dir);
 
          declare
-            Result : constant Spoon.Result :=
-              Spoon.Spawn
-                (Executable => Rpmbuild_Program,
-                 Arguments  =>
-                   (Arg_1'Unchecked_Access,
-                    Arg_2'Unchecked_Access,
-                    Arg_3'Unchecked_Access,
-                    Arg_4'Unchecked_Access,
-                    Arg_5'Unchecked_Access,
-                    Arg_6'Unchecked_Access,
-                    Arg_7'Unchecked_Access,
-                    Arg_8'Unchecked_Access,
-                    Arg_9'Unchecked_Access,
-                    Arg_10'Unchecked_Access,
-                    Arg_11'Unchecked_Access,
-                    Arg_12'Unchecked_Access),
-                 Kind       => Spoon.Name);
+            Process : Shell.Process :=
+              Shell.Start (Program => Rpmbuild_Program,
+                          Arguments => Args);
          begin
-            Report_State (Result, Success);
+            Shell.Wait_On (Process);
+            Report_State (Process, Success);
          end;
       exception
          when others =>
@@ -621,6 +592,5 @@ package body Runner is
 
       Ada.Directories.Set_Directory (Original_Dir);
    end Run_Rpm_Build;
-
 
 end Runner;

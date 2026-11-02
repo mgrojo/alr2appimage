@@ -36,9 +36,6 @@ executables = ["alr2appimage"]
 ada_toml = "~0.5.0"
 
 [[depends-on]]
-spoon = "^1.0.1"
-
-[[depends-on]]
 parse_args = "~0.9.1"
 
 [[depends-on]]
@@ -50,6 +47,13 @@ resources = "~0.1.0"
 
 [build-switches]
 "*".style_checks = ["-gnaty3abBCrfklM99nptx"]
+"*".Ada_Version = "Ada2022"
 
 [configuration]
 generate_c = false
+
+[[depends-on]]
+ashell = "^1.3.0"
+
+[[pins]]
+ashell = { path='../../charlie5/aShell' }
