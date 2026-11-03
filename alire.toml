@@ -56,4 +56,4 @@ generate_c = false
 ashell = "^1.3.0"
 
 [[pins]]
-ashell = { path='../../charlie5/aShell' }
+ashell = { url='https://github.com/charlie5/aShell.git' }
