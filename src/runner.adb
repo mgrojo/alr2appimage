@@ -58,6 +58,28 @@ package body Runner is
       Report_State (Process, Success);
    end Run_Command;
 
+   procedure Run_Shell_Command
+     (Command : String;
+      Success : out Boolean)
+   is
+      Args : constant Shell.String_Array :=
+         (1 => To_Argument ("-c"),
+          2 => To_Argument (Command));
+   begin
+      Run_Command ("sh", Args, Success);
+   end Run_Shell_Command;
+
+   procedure Run_Change_Mode
+     (Filename : String; Mode : String; Success : out Boolean)
+   is
+      Args : constant Shell.String_Array :=
+        (1 => To_Argument (Mode), 2 => To_Argument (Filename));
+   begin
+      Run_Command ("chmod", Args, Success);
+      Ada.Text_IO.Put_Line
+        ("Finished: ""chmod " & Mode & " " & Filename & """");
+   end Run_Change_Mode;
+
    procedure Run_Copy
      (Filename     : String;
       To_Dir       : String;
@@ -74,17 +96,19 @@ package body Runner is
 
       if not Ada.Directories.Exists (To_Dir) then
          Ada.Directories.Create_Path (To_Dir);
+         Run_Change_Mode (To_Dir, "755", Success);
       end if;
 
       begin
          Ada.Directories.Copy_File
            (Source_Name => Filename,
             Target_Name => To_Dir & "/" & Target_Filename);
-         Success := True;
+         Run_Change_Mode (To_Dir & "/" & Target_Filename, "644", Success);
       exception
          when others =>
             Success := False;
       end;
+
 
    end Run_Copy;
 
@@ -138,13 +162,19 @@ package body Runner is
       Success : Boolean := False;
    begin
 
-      Run_Command ("chmod", New_Mode_Args, Success);
-      if not Success then
-         Ada.Text_IO.Put_Line ("Failed to set permissions on " & Temporary_Dir);
-         return "";
+      if Package_Kind in Basic_Types.AppImage then
+         Run_Change_Mode (Temporary_Dir, "a+r,a+x", Success);
+         if not Success then
+            Ada.Text_IO.Put_Line
+              ("Failed to set permissions on " & Temporary_Dir);
+            return "";
+         end if;
       end if;
-      Run_Command ("alr", Alr_Args, Success);
-      Ada.Text_IO.Put_Line ("Finished: ""alr install""");
+
+      Run_Shell_Command
+        ("umask 022 && alr --force install --prefix=" & Install_Prefix,
+         Success);
+      Ada.Text_IO.Put_Line ("Finished: ""umask 022 && alr install""");
 
       if not Success then
          --  "alr install" failed. Let's try with the fallback command.
@@ -214,16 +244,6 @@ package body Runner is
       end case;
 
    end Run_Get_Linuxdeploy;
-
-   procedure Run_Change_Mode (Success : out Boolean) is
-      Args : constant Shell.String_Array :=
-        (1 => To_Argument ("+x"),
-         2 => To_Argument (Linuxdeploy_Program));
-   begin
-      Run_Command ("chmod", Args, Success);
-      Ada.Text_IO.Put_Line
-        ("Finished: ""chmod +x " & Linuxdeploy_Program & """");
-   end Run_Change_Mode;
 
    -- Find the first file with Executable name in the current directory
    --
@@ -332,7 +352,7 @@ package body Runner is
          Ada.Environment_Variables.Set (Name => "VERSION", Value => Version);
       end if;
 
-      Run_Change_Mode (Success);
+      Run_Change_Mode (Linuxdeploy_Program, "+x", Success);
 
       if not Success then
          return;
@@ -448,14 +468,16 @@ package body Runner is
 
       Dpkg_Program : constant String := "dpkg-deb";
 
-      Arg_String_1 : constant String := "--build";
-      Arg_String_2 : String renames App_Dir;
-      Arg_String_3 : String renames Filename;
+      Arg_String_1 : constant String := "--root-owner-group";
+      Arg_String_2 : constant String := "--build";
+      Arg_String_3 : String renames App_Dir;
+      Arg_String_4 : String renames Filename;
 
       Args : constant Shell.String_Array :=
         (1 => To_Argument (Arg_String_1),
          2 => To_Argument (Arg_String_2),
-         3 => To_Argument (Arg_String_3));
+         3 => To_Argument (Arg_String_3),
+         4 => To_Argument (Arg_String_4));
    begin
 
       Ada.Text_IO.Put_Line
@@ -467,6 +489,8 @@ package body Runner is
          & Arg_String_2
          & " "
          & Arg_String_3
+         & " "
+         & Arg_String_4
          & '"');
 
       declare
@@ -525,6 +549,13 @@ package body Runner is
    begin
       begin
          Ada.Directories.Create_Path (Build_Dir);
+         Run_Change_Mode (Build_Dir, "755", Success);
+
+         if not Success then
+            Ada.Text_IO.Put_Line
+              ("Failed to change permissions of directory " & Build_Dir);
+            return;
+         end if;
 
          declare
             --  Stage App_Dir under Build_Dir so the spec's "%install"
