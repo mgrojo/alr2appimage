@@ -1,3 +1,4 @@
+with Ada.Calendar;
 with Ada.Directories;
 with Ada.Strings.Equal_Case_Insensitive;
 with Ada.Strings.Fixed;
@@ -181,5 +182,34 @@ package body Deb_Package is
       Close (Control_File);
 
    end Write_Control;
+
+   procedure Write_Copyright
+     (Filename   : String;
+      Name       : String;
+      Source_URL : String;
+      Author     : String;
+      License    : String)
+   is
+      Copyright_File : File_Type;
+   begin
+      Create
+       (File => Copyright_File,
+        Name => Filename);
+
+      Put_Line
+        (Copyright_File,
+         "Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/");
+      Put_Line (Copyright_File, "Upstream-Name: " & Name);
+      Put_Line (Copyright_File, "Source: " & Source_URL);
+      New_Line (Copyright_File);
+      Put_Line (Copyright_File, "Files: *");
+      Put_Line
+       (Copyright_File,
+        "Copyright:" & Ada.Calendar.Year (Ada.Calendar.Clock)'Image & ' ' & Author);
+      Put_Line (Copyright_File, "License: " & License);
+      New_Line (Copyright_File);
+      Close (Copyright_File);
+
+   end Write_Copyright;
 
 end Deb_Package;

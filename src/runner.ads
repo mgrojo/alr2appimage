@@ -28,6 +28,13 @@ package Runner is
      (App_Dir, Executable, Icon_File, Version : String; Success : out Boolean);
 
 
+   procedure Write_Deb_Copyright
+     (App_Dir    : String;
+      Name       : String;
+      Source_URL : String;
+      Author     : String;
+      License    : String);
+
    -- Set Success to True when OK, and to False when the operation fails.
    --
    procedure Run_Dpkg_Dependencies

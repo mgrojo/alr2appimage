@@ -2,6 +2,7 @@ with Ada.Directories;
 with Ada.Environment_Variables;
 with Ada.Text_IO;
 
+with Deb_Package;
 with File_Manager;
 
 with Shell;
@@ -383,6 +384,46 @@ package body Runner is
       end;
 
    end Run_Linuxdeploy;
+
+   procedure Write_Deb_Copyright
+     (App_Dir    : String;
+      Name       : String;
+      Source_URL : String;
+      Author     : String;
+      License    : String)
+   is
+      Success        : Boolean := False;
+      Copyright_Path : constant String := App_Dir & "/usr/share/doc/" & Name;
+      Copyright_File : constant String := Copyright_Path & "/copyright";
+   begin
+
+      -- Let user define their own copyright file if they want to.
+      -- If it exists, we don't overwrite it.
+      if not Ada.Directories.Exists (Copyright_File) then
+
+         Ada.Directories.Create_Path (Copyright_Path);
+
+         Deb_Package.Write_Copyright
+           (Filename   => Copyright_File,
+            Name       => Name,
+            Source_URL => Source_URL,
+            Author     => Author,
+            License    => License);
+      end if;
+
+      Run_Change_Mode (Copyright_Path, "755", Success);
+      if not Success then
+         Ada.Text_IO.Put_Line
+           ("Warning: Failed to change mode of " & Copyright_Path);
+      end if;
+
+      Run_Change_Mode (Copyright_File, "644", Success);
+      if not Success then
+         Ada.Text_IO.Put_Line
+           ("Warning: Failed to change mode of " & Copyright_File);
+      end if;
+
+   end Write_Deb_Copyright;
 
    procedure Run_Dpkg_Dependencies
      (App_Dir, Executable : String;

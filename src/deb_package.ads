@@ -24,7 +24,17 @@ package Deb_Package is
       Version        : String;
       Tags           : String_Vectors.Vector;
       Dependencies   : Ada.Strings.Unbounded.Unbounded_String :=
-         Ada.Strings.Unbounded.Null_Unbounded_String;
+        Ada.Strings.Unbounded.Null_Unbounded_String;
       Include_Source : Boolean := False);
+
+   -- Write a copyright file for a Debian package with the fields passed as parameters.
+   -- See https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+   --
+   procedure Write_Copyright
+     (Filename   : String;
+      Name       : String;
+      Source_URL : String;
+      Author     : String;
+      License    : String);
 
 end Deb_Package;

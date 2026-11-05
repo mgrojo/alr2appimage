@@ -171,6 +171,15 @@ procedure Alr2AppImage is
                      Tags           => Alire_TOML.Read_String_List ("tags"),
                      Dependencies   => Dependencies,
                      Include_Source => False);
+
+                  Runner.Write_Deb_Copyright
+                    (App_Dir    => App_Dir,
+                     Name       => Name,
+                     Source_URL => Alire_TOML.Read_Field ("repository"),
+                     Author     =>
+                       Alire_TOML.Read_String_List ("authors") (1),
+                     License    => Alire_TOML.Read_Field ("licenses"));
+
                   Runner.Run_Dpkg_Build
                     (App_Dir  => App_Dir,
                      Filename => Package_File,
