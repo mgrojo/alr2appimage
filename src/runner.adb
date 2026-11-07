@@ -324,6 +324,13 @@ package body Runner is
       return Ada.Strings.Unbounded.To_String (Found_Filename);
    end Find_Executable;
 
+   procedure Fix_Permissions (Directory : String; Success : out Boolean)
+   is
+   begin
+      Run_Shell_Command
+        ("find """ & Directory & """ -type d -exec chmod 755 {} +", Success);
+   end Fix_Permissions;
+
    procedure Run_Linuxdeploy
      (App_Dir, Executable, Icon_File, Version : String; Success : out Boolean)
    is
@@ -393,7 +400,8 @@ package body Runner is
       License    : String)
    is
       Success        : Boolean := False;
-      Copyright_Path : constant String := App_Dir & "/usr/share/doc/" & Name;
+      Base_Path      : constant String := App_Dir & "/usr/share/doc/";
+      Copyright_Path : constant String := Base_Path & Name;
       Copyright_File : constant String := Copyright_Path & "/copyright";
    begin
 
@@ -411,10 +419,10 @@ package body Runner is
             License    => License);
       end if;
 
-      Run_Change_Mode (Copyright_Path, "755", Success);
+      Fix_Permissions (Base_Path, Success);
       if not Success then
          Ada.Text_IO.Put_Line
-           ("Warning: Failed to change mode of " & Copyright_Path);
+           ("Warning: Failed to change mode of " & Base_Path);
       end if;
 
       Run_Change_Mode (Copyright_File, "644", Success);

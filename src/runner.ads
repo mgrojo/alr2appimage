@@ -27,7 +27,13 @@ package Runner is
    procedure Run_Linuxdeploy
      (App_Dir, Executable, Icon_File, Version : String; Success : out Boolean);
 
+   -- Fix the permissions of the directories in the passed App_Dir to comply
+   --  with AppImage and Debian packaging policy as reported by Lintian.
+   --
+   procedure Fix_Permissions (Directory : String; Success : out Boolean);
 
+   -- Write the copyright file for the Debian package.
+   --
    procedure Write_Deb_Copyright
      (App_Dir    : String;
       Name       : String;

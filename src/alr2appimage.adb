@@ -94,6 +94,13 @@ procedure Alr2AppImage is
             return;
          end if;
 
+         Runner.Fix_Permissions (Directory => App_Dir, Success => Success);
+         if not Success then
+            Report_Failure
+              ("Warning: Failed to set permissions on directories in "
+               & App_Dir);
+         end if;
+
          case Package_Kind is
             when Basic_Types.AppImage =>
                Runner.Run_Get_Linuxdeploy
