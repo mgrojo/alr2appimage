@@ -6,6 +6,9 @@ package body Desktop_File is
 
    use type String_Vectors.Vector; -- make "&" visible
 
+   -- Categories for desktop entry files, aligned with:
+   --  https://specifications.freedesktop.org/menu/1.0/category-registry.html
+   --
    Categories : constant String_Vectors.Vector := String_Vectors.Empty_Vector &
       ("AudioVideo") &
       -- A multimedia (audio/video) application
@@ -43,33 +46,29 @@ package body Desktop_File is
       ("System") &
       -- System (application) & "System Tools" such as say a log viewer or network monitor
 
-      ("Utility")
+      ("Utility");
      -- Small utility application, "Accessories"
-     ;
 
-   procedure Put_Value
-     (File : File_Type;
-      Key, Value : String) is
+
+   procedure Put_Value (File : File_Type; Key, Value : String) is
    begin
       Put_Line (File, Key & "=" & Value);
    end Put_Value;
 
-   procedure Put_Value
-     (File : File_Type;
-      Key : String;
-      Value : Boolean) is
+   procedure Put_Value (File : File_Type; Key : String; Value : Boolean) is
    begin
-      Put_Line (File, Key & "=" &
-                  Ada.Characters.Handling.To_Lower (Value'Image));
+      Put_Line
+        (File, Key & "=" & Ada.Characters.Handling.To_Lower (Value'Image));
    end Put_Value;
 
    procedure Write
-     (Name : String;
-      Comment : String;
-      Exec : String;
-      Icon : String;
+     (Name     : String;
+      Comment  : String;
+      Exec     : String;
+      Icon     : String;
       Terminal : Boolean;
-      Tags : String_Vectors.Vector) is
+      Tags     : String_Vectors.Vector)
+   is
 
       Desktop_File : File_Type;
    begin
@@ -91,15 +90,22 @@ package body Desktop_File is
       end loop;
       New_Line (Desktop_File);
 
-      Put (Desktop_File, "Categories=");
-      for Tag of Tags loop
-         for Each_Category of Categories loop
-            if Ada.Strings.Equal_Case_Insensitive (Each_Category, Tag)
-            then
-               Put (Desktop_File, Each_Category & ";");
-            end if;
+      declare
+         Found_Category : Boolean := False;
+      begin
+         Put (Desktop_File, "Categories=");
+         for Tag of Tags loop
+            for Each_Category of Categories loop
+               if Ada.Strings.Equal_Case_Insensitive (Each_Category, Tag) then
+                  Put (Desktop_File, Each_Category & ";");
+                  Found_Category := True;
+               end if;
+            end loop;
          end loop;
-      end loop;
+         if not Found_Category then
+            Put (Desktop_File, "Utility;");
+         end if;
+      end;
       New_Line (Desktop_File);
 
       Close (Desktop_File);

@@ -39,10 +39,10 @@ package body Runner is
 
          when Shell.Not_Started | Shell.Running | Shell.Paused |
            Shell.Failed_Exit =>
-            Ada.Text_IO.Put_Line ("with status" & Process_State'Image);
+            Ada.Text_IO.Put_Line ("with status " & Process_State'Image);
 
          when Shell.Interrupted | Shell.Killed =>
-            Ada.Text_IO.Put_Line ("with signal" & Process_State'Image);
+            Ada.Text_IO.Put_Line ("with signal " & Process_State'Image);
       end case;
 
    end Report_State;
@@ -401,7 +401,8 @@ package body Runner is
    is
       Success        : Boolean := False;
       Base_Path      : constant String := App_Dir & "/usr/share/doc/";
-      Copyright_Path : constant String := Base_Path & Name;
+      Copyright_Path : constant String := Base_Path &
+         Deb_Package.Debian_Name_Of (Name);
       Copyright_File : constant String := Copyright_Path & "/copyright";
    begin
 
