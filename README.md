@@ -125,6 +125,7 @@ Makes AppImage, Deb and RPM packages from your Alire crate.
   -t, --terminal   Set the Terminal flag of the desktop file to true, i.e. the application is for the terminal or requires to be run from a terminal.
   -i, --icon       Specify the icon file for the package
   -e, --executable Specify the executable for the package (without path)
+  -s, --single-exe Remove all executables except the specified one on the crate or the command line. 
   -u, --use-version 
                    Use the crate version specified in the alire.toml for the AppImage
   -d, --debug      Debug mode. Keep the temporary directory after the package is created.

@@ -16,5 +16,7 @@
 /alire/
 /config/
 
-# AppImage
+# Output files
 *.AppImage
+*.deb
+*.rpm

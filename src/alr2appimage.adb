@@ -81,10 +81,12 @@ procedure Alr2AppImage is
       Deploy : declare
          App_Dir      : constant String :=
            Runner.Run_Alr_Install
-             (Name             => Name,
-              Icon             => Icon,
-              Desktop_Filename => Executable & ".desktop",
-              Package_Kind     => Package_Kind);
+             (Name              => Name,
+              Icon              => Icon,
+              Desktop_Filename  => Executable & ".desktop",
+              Package_Kind      => Package_Kind,
+              Executable        => Executable,
+              Single_Executable => AP.Boolean_Value ("single-exe"));
          Package_File : constant String :=
            File_Manager.To_Package_File (Package_Kind, Name, Version);
       begin
@@ -274,6 +276,14 @@ begin
    AP.Add_Option (Make_String_Option (""),
                   "executable", 'e',
                   Usage => "Specify the executable for the package (without path)");
+
+
+   AP.Add_Option (Make_Boolean_Option (False),
+                  "single-exe",
+                  's',
+                  Usage =>
+                     "Remove all executables except the specified one "
+                     & "on the crate or the command line. ");
 
    AP.Add_Option (Make_Boolean_Option (False),
                   "use-version", 'u',

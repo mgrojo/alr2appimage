@@ -9,8 +9,10 @@ package Runner is
    --
    -- Install the Icon file and the Desktop_Filename if not empty.
    function Run_Alr_Install
-     (Name, Icon, Desktop_Filename : String; Package_Kind : Basic_Types.Package_Kind)
-      return String;
+     (Name, Icon, Desktop_Filename : String;
+      Package_Kind                 : Basic_Types.Package_Kind;
+      Executable                   : String;
+      Single_Executable            : Boolean) return String;
 
    type Getter_Tool is (Curl, Wget);
 

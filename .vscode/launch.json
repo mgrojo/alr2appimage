@@ -10,7 +10,7 @@
             "name": "Ada: Debugger Launch",
             "program": "${workspaceFolder}/bin/alr2appimage",
             "cwd": "${workspaceFolder}",
-            "programArgs": "-o deb",
+            "programArgs": "-o deb --terminal --single-exe",
             "stopAtEntry": true
         }
     ]

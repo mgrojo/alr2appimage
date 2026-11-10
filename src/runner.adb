@@ -135,9 +135,38 @@ package body Runner is
         ("Finished: fallback command: ""alr exec ... gprinstall ...""");
    end Run_Gprinstall;
 
+   procedure Remove_Other_Executables
+    (Install_Prefix : String;
+     Executable_Name : String)
+   is
+      use Ada.Directories;
+      Bin_Dir    : constant String := Install_Prefix & "/bin";
+      Dir_Entry  : Directory_Entry_Type;
+      Dir_Search : Search_Type;
+   begin
+      if Exists (Bin_Dir) then
+         Start_Search
+           (Search    => Dir_Search,
+            Directory => Bin_Dir,
+            Pattern   => "",
+            Filter    =>
+               (Ordinary_File => True, Directory => False, others => False));
+
+         while More_Entries (Dir_Search) loop
+            Get_Next_Entry (Dir_Search, Dir_Entry);
+            if Simple_Name (Dir_Entry) /= Executable_Name then
+               Delete_File (Full_Name (Dir_Entry));
+            end if;
+         end loop;
+         End_Search (Dir_Search);
+      end if;
+   end Remove_Other_Executables;
+
    function Run_Alr_Install
      (Name, Icon, Desktop_Filename : String;
-      Package_Kind                 : Basic_Types.Package_Kind) return String
+      Package_Kind                 : Basic_Types.Package_Kind;
+      Executable                   : String;
+      Single_Executable            : Boolean) return String
    is
 
       Temporary_Dir : constant String :=
@@ -195,6 +224,10 @@ package body Runner is
            (Filename => Desktop_Filename,
             To_Dir   => Install_Prefix & "/share/applications/",
             Success  => Success);
+      end if;
+
+      if Success and Single_Executable then
+         Remove_Other_Executables (Install_Prefix, Executable);
       end if;
 
       if not Success then
