@@ -1,6 +1,6 @@
 name = "alr2appimage"
 description = "Tool to create an AppImage, Debian or RPM package from an Alire crate"
-version = "1.1.0-dev"
+version = "1.1.0"
 website = "https://github.com/mgrojo/alr2appimage"
 long-description = """
 There are two prerequisites for your project to work with this tool:
@@ -32,14 +32,12 @@ maintainers = ["Manuel Gomez <mgrojo@gmail.com>"]
 maintainers-logins = ["mgrojo"]
 
 executables = ["alr2appimage"]
+
 [[depends-on]]
 ada_toml = "~0.5.0"
-
-[[depends-on]]
 parse_args = "~0.9.1"
-
-[[depends-on]]
 resources = "~0.1.0"
+ashell = "^2.0.1"
 
 [available.'case(os)']
 'linux' = true
@@ -51,9 +49,3 @@ resources = "~0.1.0"
 
 [configuration]
 generate_c = false
-
-[[depends-on]]
-ashell = "^1.3.0"
-
-[[pins]]
-ashell = { url='https://github.com/charlie5/aShell.git' }

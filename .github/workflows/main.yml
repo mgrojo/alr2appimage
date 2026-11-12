@@ -31,11 +31,13 @@ jobs:
          uses: alire-project/setup-alire@latest
        - name: Update apt
          if: runner.os == 'Linux'
-         run: sudo apt-get update
+         run: sudo apt-get update && sudo apt-get install -y rpmlint lintian
        - name: Update
          run: alr index --update-all
        - name: Build
          run: alr --non-interactive build
+       - name: Tests
+         run: alr install bbt && make -C tests
          
   release:
     name: Continuous AppImage
