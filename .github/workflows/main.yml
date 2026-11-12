@@ -36,6 +36,8 @@ jobs:
          run: alr index --update-all
        - name: Build
          run: alr --non-interactive build
+       - name: Add alr prefix to PATH
+         run: echo "$HOME/.alire/bin" >> $GITHUB_PATH
        - name: Tests
          run: alr install bbt=0.6.0 && make -C tests
          
