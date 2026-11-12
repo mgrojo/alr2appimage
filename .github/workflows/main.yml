@@ -37,7 +37,7 @@ jobs:
        - name: Build
          run: alr --non-interactive build
        - name: Tests
-         run: alr install bbt && make -C tests
+         run: alr install bbt=0.6.0 && make -C tests
          
   release:
     name: Continuous AppImage
