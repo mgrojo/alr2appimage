@@ -31,7 +31,7 @@ jobs:
          uses: alire-project/setup-alire@latest
        - name: Update apt
          if: runner.os == 'Linux'
-         run: sudo apt-get update && sudo apt-get install -y rpmlint lintian
+         run: sudo apt-get update && sudo apt-get install -y rpm rpmlint lintian
        - name: Update
          run: alr index --update-all
        - name: Build

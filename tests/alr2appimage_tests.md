@@ -57,3 +57,4 @@ exec ./appimagelint ./alr2appimage-x86_64.AppImage
 ### Scenario: RPM package linting
 - When I run `rpmlint -r tests/rpmlintrc alr2appimage-1.1.0-1.x86_64.rpm`
 - Then there is no error output
+- And the output contains `0 errors`
