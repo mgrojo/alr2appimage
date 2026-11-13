@@ -55,6 +55,6 @@ exec ./appimagelint ./alr2appimage-x86_64.AppImage
 - And I get no error
 
 ### Scenario: RPM package linting
-- When I run `rpmlint --checks AlternativesCheck,AppDataCheck,BuildDateCheck,ChangelogCheck,ConfigFilesCheck,DesktopFileCheck,DuplicatesCheck,FilesCheck,IconsCheck,LibraryDependencyCheck,MenuCheck,MenusCheck,MimeTypesCheck,PkgConfigCheck,SharedLibraryPolicyCheck,SpecCheck,TmpFilesCheck,XinetdDepCheck,ZipCheck alr2appimage-1.1.0-1.x86_64.rpm`
+- When I run `rpmlint -r tests/rpmlintrc alr2appimage-1.1.0-1.x86_64.rpm`
 - Then there is no error output
 - And I get no error
