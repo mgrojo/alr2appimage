@@ -184,7 +184,7 @@ procedure Alr2AppImage is
                   Runner.Write_Deb_Copyright
                     (App_Dir    => App_Dir,
                      Name       => Name,
-                     Source_URL => Alire_TOML.Read_Field ("repository"),
+                     Source_URL => Alire_TOML.Read_Field ("website", Default => ""),
                      Author     =>
                        Alire_TOML.Read_String_List ("authors") (1),
                      License    => Alire_TOML.Read_Field ("licenses"));
@@ -203,6 +203,7 @@ procedure Alr2AppImage is
                        Name    => Name,
                        Version => Version,
                        Summary => Alire_TOML.Read_Field ("description"),
+                       URL     => Alire_TOML.Read_Field ("website", Default => ""),
                        License =>
                          Alire_TOML.Read_Field
                            ("licenses", Default => "Unknown"));

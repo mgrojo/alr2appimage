@@ -18,6 +18,7 @@ package Rpm_Package is
       Name     : String;
       Version  : String;
       Summary  : String;
+      URL      : String;
       License  : String) return String;
 
 end Rpm_Package;

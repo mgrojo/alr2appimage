@@ -49,6 +49,7 @@ package body Rpm_Package is
       Name     : String;
       Version  : String;
       Summary  : String;
+      URL      : String;
       License  : String) return String
    is
       Working_Dir : constant String :=
@@ -69,6 +70,9 @@ package body Rpm_Package is
       Put_Line (Spec_File, Put_Field ("Summary", Summary));
       New_Line (Spec_File);
       Put_Line (Spec_File, Put_Field ("License", License));
+      if URL /= "" then
+         Put_Line (Spec_File, Put_Field ("URL", URL));
+      end if;
       Put_Line
         (Spec_File,
          Put_Field ("BuildArch", Rpm_Architecture_Of (Alr2appimage_Config.Alire_Host_Arch)));
