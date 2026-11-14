@@ -17,7 +17,7 @@ jobs:
 
     strategy:
       matrix:
-        os: [ubuntu-22.04, ubuntu-latest]
+        os: [ubuntu-22.04, ubuntu-24.04]
 
     steps:
        - name: Checkout
@@ -29,8 +29,7 @@ jobs:
            target: native
        - name: alire-project/setup-alire
          uses: alire-project/setup-alire@latest
-       - name: Update apt
-         if: runner.os == 'Linux'
+       - name: Update apt and install packages
          run: sudo apt-get update && sudo apt-get install -y rpm rpmlint lintian
        - name: Update
          run: alr index --update-all
@@ -38,13 +37,17 @@ jobs:
          run: alr --non-interactive build
        - name: Add alr prefix to PATH
          run: echo "$HOME/.alire/bin" >> $GITHUB_PATH
-       - name: Tests
-         run: alr install bbt=0.6.0 && make -C tests
-         
+       - name: Version information
+         run: rpmbuild --version && lintian --version
+       - name: Install bbt
+         run: alr install bbt=0.6.0
+       - name: Run tests
+         run: make -s -C tests >> $GITHUB_STEP_SUMMARY
+
   release:
-    name: Continuous AppImage
+    name: Continuous Packages Release
     runs-on: ubuntu-22.04
-    steps:    
+    steps:
        - name: Delete 'continuous' release and tag
          uses: dev-drprasad/delete-tag-and-release@v1.0
          with:
