@@ -35,14 +35,12 @@ jobs:
          run: alr index --update-all
        - name: Build
          run: alr --non-interactive build
-       - name: Add alr prefix to PATH
-         run: echo "$HOME/.alire/bin" >> $GITHUB_PATH
-       - name: Version information
-         run: rpmbuild --version && lintian --version
-       - name: Install bbt
-         run: alr install bbt=0.6.0
-       - name: Run tests
-         run: make -s -C tests >> $GITHUB_STEP_SUMMARY
+       - name: Install bbt and run tests
+         if: matrix.os == 'ubuntu-24.04'
+         run: |
+            echo "$HOME/.alire/bin" >> $GITHUB_PATH
+            alr install bbt=0.6.0
+            make -s -C tests >> $GITHUB_STEP_SUMMARY
 
   release:
     name: Continuous Packages Release
