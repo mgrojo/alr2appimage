@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v1.1.1] - 2026-11-15
+
+### Fixed
+- When the project is any other than alr2appimage, the icon is not found and the execution ends with an error, although the AppImage file is generated.
+
 ## [v1.1.0] - 2026-11-14
 
 ### Added
