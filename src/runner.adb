@@ -228,6 +228,8 @@ package body Runner is
 
       if Success and Single_Executable then
          Remove_Other_Executables (Install_Prefix, Executable);
+         Ada.Text_IO.Put_Line
+           ("Removed other executables from " & Install_Prefix & "/bin");
       end if;
 
       if not Success then
@@ -365,7 +367,7 @@ package body Runner is
    end Fix_Permissions;
 
    procedure Run_Linuxdeploy
-     (App_Dir, Executable, Icon_File, Version : String; Success : out Boolean)
+     (App_Dir, Executable, Name, Icon_File, Version : String; Success : out Boolean)
    is
 
       Install_Prefix : constant String := App_Dir & Installation_Subdir;
@@ -377,7 +379,8 @@ package body Runner is
       Arg_String_2 : constant String :=
         "--desktop-file=" & Executable & ".desktop";
       Arg_String_3 : constant String :=
-        "--icon-file=" & Install_Prefix & Icon_Path & Icon_File;
+        "--icon-file=" & Install_Prefix & Icon_Path & Name & "."
+         & Ada.Directories.Extension (Icon_File);
       Arg_String_4 : constant String := "--appdir=" & App_Dir;
       Arg_String_5 : constant String := "--output=appimage";
 

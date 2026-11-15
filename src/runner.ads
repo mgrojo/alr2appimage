@@ -27,7 +27,7 @@ package Runner is
    -- Set Success to True when OK, and to False when the operation fails.
    --
    procedure Run_Linuxdeploy
-     (App_Dir, Executable, Icon_File, Version : String; Success : out Boolean);
+     (App_Dir, Executable, Name, Icon_File, Version : String; Success : out Boolean);
 
    -- Fix the permissions of the directories in the passed App_Dir to comply
    --  with AppImage and Debian packaging policy as reported by Lintian.

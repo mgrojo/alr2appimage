@@ -1,6 +1,6 @@
 name = "alr2appimage"
 description = "Tool to create an AppImage, Debian or RPM package from an Alire crate"
-version = "1.1.0"
+version = "1.1.1"
 website = "https://github.com/mgrojo/alr2appimage"
 long-description = """
 There are two prerequisites for your project to work with this tool:

@@ -122,6 +122,7 @@ procedure Alr2AppImage is
                Runner.Run_Linuxdeploy
                  (App_Dir    => App_Dir,
                   Executable => Executable,
+                  Name       => Name,
                   Icon_File  => Ada.Directories.Simple_Name (Icon),
                   Version    => Version,
                   Success    => Success);

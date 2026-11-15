@@ -24,15 +24,15 @@ Prerequirements: `curl`, `lintian` and `rpmlint` must be installed.
 
 ### Background :
 - Given there is no `alr2appimage-x86_64.AppImage` file
-- And there is no `alr2appimage-1.1.0-amd64.deb` file
-- And there is no `alr2appimage-1.1.0-1.x86_64.rpm` file
+- And there is no `alr2appimage-1.1.1-amd64.deb` file
+- And there is no `alr2appimage-1.1.1-1.x86_64.rpm` file
 
 ### Scenario: create the AppImage, Debian and RPM bundles
 - When I run `./bin/alr2appimage --out-package AppImage,Deb,RPM`
 - Then output contains `Success! Package is ready`
 - And there is a file `alr2appimage-x86_64.AppImage`
-- And there is a file `alr2appimage-1.1.0-amd64.deb`
-- And there is a file `alr2appimage-1.1.0-1.x86_64.rpm`
+- And there is a file `alr2appimage-1.1.1-amd64.deb`
+- And there is a file `alr2appimage-1.1.1-1.x86_64.rpm`
 - and there is no error
 
 ## Feature: generated package quality checks
@@ -50,11 +50,47 @@ exec ./appimagelint ./alr2appimage-x86_64.AppImage
 - And I get no error
 
 ### Scenario: Debian package linting
-- When I run `lintian --suppress-tags=no-changelog,unstripped-binary-or-object alr2appimage-1.1.0-amd64.deb`
+- When I run `lintian --suppress-tags=no-changelog,unstripped-binary-or-object alr2appimage-1.1.1-amd64.deb`
 - Then there is no error output
 - And I get no error
 
 ### Scenario: RPM package linting
-- When I run `rpmlint -r tests/rpmlintrc alr2appimage-1.1.0-1.x86_64.rpm`
+- When I run `rpmlint -r tests/rpmlintrc alr2appimage-1.1.1-1.x86_64.rpm`
 - Then there is no error output
 - And the output contains `0 errors`
+
+## Feature: testing options
+
+### Background :
+- Given there is no `alr2appimage-1.1.1-x86_64.AppImage` file
+- And there is no `alr2appimage-1.1.1-amd64.deb` file
+- And there is no `alr2appimage-1.1.1-amd64.deb` file
+- And there is no `alr2appimage-1.1.1-1.x86_64.rpm` file
+
+### Scenario: single exe
+- When I run `./bin/alr2appimage --out-package rpm --single-exe`
+- Then I get no error
+  - And output contains `Removed other executables from`
+  - And there is a file `alr2appimage-1.1.1-1.x86_64.rpm`
+
+### Scenario: icon
+- When I run `./bin/alr2appimage --out-package Deb --icon ./tests/tests.png`
+- Then I get no error
+  - And output contains `Copying ./tests/tests.png to `
+  - And there is a file `alr2appimage-1.1.1-amd64.deb`
+
+### Scenario: terminal
+- When I run `./bin/alr2appimage --out-package deb --terminal`
+- Then I get no error
+  - And the file `alr2appimage.desktop` contains `Terminal=true`
+
+### Scenario: use version
+- When I run `./bin/alr2appimage --out-package appimage --use-version`
+- Then I get no error
+  - And there is a file `alr2appimage-1.1.1-x86_64.AppImage`
+
+### Scenario: no options
+- When I run `./bin/alr2appimage --out-package appimage`
+- Then I get no error
+  - And the file `alr2appimage.desktop` contains `Terminal=false`
+  - And there is a file `alr2appimage-x86_64.AppImage`
