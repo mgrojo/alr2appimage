@@ -37,7 +37,7 @@ executables = ["alr2appimage"]
 ada_toml = "~0.5.0"
 parse_args = "~0.9.1"
 resources = "~0.1.0"
-ashell = "^2.0.1"
+ashell = "^3.0.0"
 
 [available.'case(os)']
 'linux' = true
